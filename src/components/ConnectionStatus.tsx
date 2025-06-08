@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 interface ConnectionStatusProps {
-  status: 'connecting' | 'connected' | 'disconnected' | 'error';
+  status: 'connecting' | 'connected' | 'disconnected' | 'error' | 'blocked';
   onReconnect: () => void;
 }
 
@@ -19,6 +19,8 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ status, onReconnect
         return 'bg-red-500';
       case 'error':
         return 'bg-red-600';
+      case 'blocked':
+        return 'bg-orange-500';
       default:
         return 'bg-gray-500';
     }
@@ -34,6 +36,8 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ status, onReconnect
         return 'Disconnected';
       case 'error':
         return 'Connection Error';
+      case 'blocked':
+        return 'Connection Blocked';
       default:
         return 'Unknown';
     }
@@ -47,6 +51,11 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ status, onReconnect
           {getStatusText()}
         </Badge>
       </div>
+      {status === 'blocked' && (
+        <div className="text-xs text-orange-600 max-w-xs">
+          HTTPS → WS blocked by browser
+        </div>
+      )}
       {(status === 'disconnected' || status === 'error') && (
         <Button onClick={onReconnect} size="sm" variant="outline">
           Reconnect

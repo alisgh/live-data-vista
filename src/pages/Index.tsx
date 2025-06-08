@@ -43,7 +43,28 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {data ? (
+        {connectionStatus === 'blocked' ? (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center space-y-4 max-w-lg">
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
+                <span className="text-orange-600 text-2xl">⚠️</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-orange-900">Connection Blocked</h3>
+                <p className="text-muted-foreground mt-2">
+                  Cannot connect to insecure WebSocket (ws://) from a secure page (https://).
+                </p>
+                <div className="mt-4 p-4 bg-orange-50 rounded-lg text-sm text-orange-800">
+                  <p className="font-medium mb-2">To fix this issue:</p>
+                  <ul className="text-left space-y-1">
+                    <li>• Use a secure WebSocket (wss://) on your server, or</li>
+                    <li>• Access this dashboard via http:// instead of https://</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : data ? (
           <>
             {/* Digital Inputs */}
             {data.inputs && data.inputs.length > 0 && (
