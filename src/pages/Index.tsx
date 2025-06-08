@@ -65,12 +65,15 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
-      <header className="border-b border-gray-700 bg-gray-800/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
+      <header className="sticky top-0 z-50 border-b border-gray-700 bg-gray-800/80 backdrop-blur-md transition-all duration-300">
+        <div className="container mx-auto px-4 lg:px-6 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-green-400">🌿 BudBox</h1>
-              <p className="text-gray-400">Smart grow box dashboard</p>
+            <div className="flex items-center gap-3">
+              <div className="text-3xl">🌿</div>
+              <div>
+                <h1 className="text-2xl font-bold text-green-400 tracking-tight">BudBox</h1>
+                <p className="text-gray-400 text-sm">Smart grow box dashboard</p>
+              </div>
             </div>
             <ConnectionStatus status={connectionStatus} onReconnect={reconnect} />
           </div>
@@ -78,23 +81,29 @@ const Index = () => {
       </header>
 
       {/* Main Dashboard */}
-      <main className="container mx-auto px-4 py-6 space-y-6">
+      <main className="container mx-auto px-4 lg:px-6 py-6 space-y-8">
         {connectionStatus === 'blocked' ? (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center space-y-4 max-w-lg">
-              <div className="w-16 h-16 bg-orange-900/20 rounded-full flex items-center justify-center mx-auto border border-orange-600">
-                <span className="text-orange-400 text-2xl">⚠️</span>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center space-y-6 max-w-lg animate-fade-in">
+              <div className="w-20 h-20 bg-orange-900/20 rounded-full flex items-center justify-center mx-auto border border-orange-600 shadow-lg">
+                <span className="text-orange-400 text-3xl">⚠️</span>
               </div>
               <div>
-                <h3 className="text-lg font-medium text-orange-400">Connection Blocked</h3>
-                <p className="text-gray-400 mt-2">
+                <h3 className="text-xl font-semibold text-orange-400 mb-3">Connection Blocked</h3>
+                <p className="text-gray-400 leading-relaxed">
                   Cannot connect to insecure WebSocket (ws://) from a secure page (https://).
                 </p>
-                <div className="mt-4 p-4 bg-orange-900/10 border border-orange-600/20 rounded-lg text-sm text-orange-300">
-                  <p className="font-medium mb-2">To fix this issue:</p>
-                  <ul className="text-left space-y-1">
-                    <li>• Use a secure WebSocket (wss://) on your server, or</li>
-                    <li>• Access this dashboard via http:// instead of https://</li>
+                <div className="mt-6 p-6 bg-orange-900/10 border border-orange-600/20 rounded-xl text-sm text-orange-300">
+                  <p className="font-medium mb-3">To fix this issue:</p>
+                  <ul className="text-left space-y-2">
+                    <li className="flex items-start gap-2">
+                      <span className="text-orange-400 mt-1">•</span>
+                      Use a secure WebSocket (wss://) on your server, or
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-orange-400 mt-1">•</span>
+                      Access this dashboard via http:// instead of https://
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -102,48 +111,88 @@ const Index = () => {
           </div>
         ) : (
           <>
-            {/* Plant Info & Grow Stats */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <PlantInfo 
-                plantName={plantName}
-                growDays={growDays}
-                onNameChange={handlePlantNameChange}
-              />
-              <GrowStats data={displayData} />
-            </div>
+            {/* Plant Overview Section */}
+            <section className="space-y-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-1 h-8 bg-green-400 rounded-full"></div>
+                <h2 className="text-xl font-semibold text-gray-200">Plant Overview</h2>
+              </div>
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div className="transition-all duration-300 hover:scale-[1.02]">
+                  <PlantInfo 
+                    plantName={plantName}
+                    growDays={growDays}
+                    onNameChange={handlePlantNameChange}
+                  />
+                </div>
+                <div className="transition-all duration-300 hover:scale-[1.02]">
+                  <GrowStats data={displayData} />
+                </div>
+              </div>
+            </section>
 
-            {/* Live Camera Feed */}
-            <LiveGrowCam />
+            {/* Live Monitoring Section */}
+            <section className="space-y-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-1 h-8 bg-blue-400 rounded-full"></div>
+                <h2 className="text-xl font-semibold text-gray-200">Live Monitoring</h2>
+              </div>
+              <div className="transition-all duration-300 hover:scale-[1.01]">
+                <LiveGrowCam />
+              </div>
+            </section>
 
-            {/* Environment Controls */}
-            <EnvironmentControls
-              outputs={displayData.outputs}
-              onToggleControl={handleToggleControl}
-              connectionStatus={connectionStatus}
-            />
+            {/* Controls Section */}
+            <section className="space-y-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-1 h-8 bg-yellow-400 rounded-full"></div>
+                <h2 className="text-xl font-semibold text-gray-200">Environment Controls</h2>
+              </div>
+              <div className="transition-all duration-300 hover:scale-[1.01]">
+                <EnvironmentControls
+                  outputs={displayData.outputs}
+                  onToggleControl={handleToggleControl}
+                  connectionStatus={connectionStatus}
+                />
+              </div>
+            </section>
 
-            {/* System Status */}
-            <SystemStatus 
-              connectionStatus={connectionStatus}
-              lastUpdate={data ? new Date() : null}
-            />
+            {/* System Health Section */}
+            <section className="space-y-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-1 h-8 bg-purple-400 rounded-full"></div>
+                <h2 className="text-xl font-semibold text-gray-200">System Health</h2>
+              </div>
+              <div className="transition-all duration-300 hover:scale-[1.01]">
+                <SystemStatus 
+                  connectionStatus={connectionStatus}
+                  lastUpdate={data ? new Date() : null}
+                />
+              </div>
+            </section>
           </>
         )}
 
         {/* Footer Info */}
-        <div className="mt-8 p-4 bg-gray-800/30 border border-gray-700 rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-400">
-            <div>
-              <strong className="text-green-400">Server:</strong> ws://192.168.0.229:8085
+        <footer className="mt-12 p-6 bg-gray-800/30 border border-gray-700 rounded-xl backdrop-blur-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-400">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <strong className="text-green-400">Server:</strong> 
+              <span className="font-mono">ws://192.168.0.229:8085</span>
             </div>
-            <div>
-              <strong className="text-green-400">Status:</strong> {connectionStatus}
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
+              <strong className="text-green-400">Status:</strong> 
+              <span className="capitalize">{connectionStatus}</span>
             </div>
-            <div>
-              <strong className="text-green-400">Mode:</strong> {data ? 'Live Data' : 'Demo Mode'}
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+              <strong className="text-green-400">Mode:</strong> 
+              <span>{data ? 'Live Data' : 'Demo Mode'}</span>
             </div>
           </div>
-        </div>
+        </footer>
       </main>
     </div>
   );

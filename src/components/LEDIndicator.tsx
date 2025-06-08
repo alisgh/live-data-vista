@@ -19,10 +19,10 @@ const LEDIndicator: React.FC<LEDIndicatorProps> = ({
   };
 
   const colorClasses = {
-    green: isOn ? 'bg-green-500 shadow-green-400' : 'bg-green-200',
-    red: isOn ? 'bg-red-500 shadow-red-400' : 'bg-red-200',
-    blue: isOn ? 'bg-blue-500 shadow-blue-400' : 'bg-blue-200',
-    yellow: isOn ? 'bg-yellow-500 shadow-yellow-400' : 'bg-yellow-200',
+    green: isOn ? 'bg-green-500 shadow-green-400/50 ring-green-400/30' : 'bg-green-200/20 border-green-600/30',
+    red: isOn ? 'bg-red-500 shadow-red-400/50 ring-red-400/30' : 'bg-red-200/20 border-red-600/30',
+    blue: isOn ? 'bg-blue-500 shadow-blue-400/50 ring-blue-400/30' : 'bg-blue-200/20 border-blue-600/30',
+    yellow: isOn ? 'bg-yellow-500 shadow-yellow-400/50 ring-yellow-400/30' : 'bg-yellow-200/20 border-yellow-600/30',
   };
 
   return (
@@ -31,8 +31,11 @@ const LEDIndicator: React.FC<LEDIndicatorProps> = ({
         ${sizeClasses[size]} 
         ${colorClasses[color]} 
         rounded-full 
-        ${isOn ? 'shadow-lg animate-pulse' : ''}
-        transition-all duration-200
+        border-2
+        transition-all duration-300 ease-in-out
+        ${isOn ? 'shadow-lg animate-pulse ring-2 ring-offset-2 ring-offset-gray-800' : 'border-2'}
+        ${isOn ? 'scale-110' : 'scale-100'}
+        hover:scale-125
       `}
     />
   );

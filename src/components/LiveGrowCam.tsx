@@ -80,7 +80,7 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
     if (!isOnline) return 'Camera offline';
     if (lastUpdate) {
       const secondsAgo = Math.floor((new Date().getTime() - lastUpdate.getTime()) / 1000);
-      return `Last updated ${secondsAgo}s ago`;
+      return `Live • ${secondsAgo}s ago`;
     }
     return 'Connecting...';
   };
@@ -92,11 +92,13 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
   };
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
-      <CardHeader>
+    <Card className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/60 transition-all duration-300 backdrop-blur-sm">
+      <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold text-green-400 flex items-center gap-2">
-            <Camera className="h-5 w-5" />
+          <CardTitle className="text-lg font-semibold text-green-400 flex items-center gap-3">
+            <div className="p-2 bg-green-400/10 rounded-lg">
+              <Camera className="h-5 w-5" />
+            </div>
             Live Grow Cam
           </CardTitle>
           <div className="flex items-center gap-2">
@@ -104,58 +106,77 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
               variant="ghost"
               size="sm"
               onClick={manualRefresh}
-              className="text-gray-400 hover:text-green-400 hover:bg-green-400/10"
+              className="text-gray-400 hover:text-green-400 hover:bg-green-400/10 transition-all duration-200 active:scale-95"
               disabled={!isVisible}
             >
-              🔄
+              <span className="text-lg">🔄</span>
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={toggleVisibility}
-              className="text-gray-400 hover:text-green-400 hover:bg-green-400/10"
+              className="text-gray-400 hover:text-green-400 hover:bg-green-400/10 transition-all duration-200 active:scale-95"
             >
               {isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
             </Button>
           </div>
         </div>
         <div className="flex items-center justify-between">
-          <div className={`flex items-center gap-2 text-sm ${getStatusColor()}`}>
-            <div className={`w-2 h-2 rounded-full ${isOnline && isVisible ? 'bg-green-400 pulse-green' : 'bg-gray-500'}`}></div>
-            {getStatusText()}
+          <div className={`flex items-center gap-3 text-sm ${getStatusColor()} transition-colors duration-300`}>
+            <div className={`w-3 h-3 rounded-full transition-all duration-300 ${
+              isOnline && isVisible ? 'bg-green-400 shadow-green-400/50 animate-pulse' : 'bg-gray-500'
+            }`}></div>
+            <span className="font-medium">{getStatusText()}</span>
           </div>
         </div>
       </CardHeader>
       
-      <CardContent>
+      <CardContent className="pt-0">
         {isVisible ? (
-          <div className="relative">
-            <div className="aspect-video w-full bg-gray-900 rounded-lg overflow-hidden shadow-lg border border-gray-600">
+          <div className="relative group">
+            <div className="aspect-video w-full bg-gray-900 rounded-xl overflow-hidden shadow-xl border border-gray-600 transition-all duration-300 group-hover:shadow-2xl group-hover:scale-[1.02]">
               <img
                 ref={imgRef}
                 src={`${streamUrl}?t=${refreshKey}`}
                 alt="Live grow cam feed"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transition-all duration-300"
                 onLoad={handleImageLoad}
                 onError={handleImageError}
               />
               {!isOnline && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80">
-                  <div className="text-center space-y-2">
-                    <Camera className="h-12 w-12 text-gray-500 mx-auto" />
-                    <p className="text-gray-400 text-sm">Camera offline</p>
-                    <p className="text-gray-500 text-xs">Check connection to {streamUrl}</p>
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 backdrop-blur-sm">
+                  <div className="text-center space-y-4 animate-fade-in">
+                    <div className="p-4 bg-gray-800/50 rounded-full">
+                      <Camera className="h-12 w-12 text-gray-500 mx-auto" />
+                    </div>
+                    <div>
+                      <p className="text-gray-400 text-sm font-medium">Camera offline</p>
+                      <p className="text-gray-500 text-xs mt-1">Check connection to {streamUrl}</p>
+                    </div>
+                    <div className="flex gap-1 justify-center">
+                      {[...Array(3)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="w-2 h-2 bg-gray-600 rounded-full animate-pulse"
+                          style={{ animationDelay: `${i * 0.2}s` }}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
             </div>
           </div>
         ) : (
-          <div className="aspect-video w-full bg-gray-900/50 rounded-lg border-2 border-dashed border-gray-600 flex items-center justify-center">
-            <div className="text-center space-y-2">
-              <EyeOff className="h-12 w-12 text-gray-500 mx-auto" />
-              <p className="text-gray-400 text-sm">Camera hidden</p>
-              <p className="text-gray-500 text-xs">Click the eye icon to show</p>
+          <div className="aspect-video w-full bg-gray-900/30 rounded-xl border-2 border-dashed border-gray-600 flex items-center justify-center transition-all duration-300 hover:bg-gray-900/40">
+            <div className="text-center space-y-4 animate-fade-in">
+              <div className="p-4 bg-gray-800/30 rounded-full">
+                <EyeOff className="h-12 w-12 text-gray-500 mx-auto" />
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm font-medium">Camera hidden</p>
+                <p className="text-gray-500 text-xs mt-1">Click the eye icon to show</p>
+              </div>
             </div>
           </div>
         )}
