@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import ConnectionStatus from '@/components/ConnectionStatus';
@@ -5,6 +6,7 @@ import GrowStats from '@/components/GrowStats';
 import EnvironmentControls from '@/components/EnvironmentControls';
 import SystemStatus from '@/components/SystemStatus';
 import PlantInfo from '@/components/PlantInfo';
+import LiveGrowCam from '@/components/LiveGrowCam';
 import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
@@ -109,6 +111,9 @@ const Index = () => {
               />
               <GrowStats data={displayData} />
             </div>
+
+            {/* Live Camera Feed */}
+            <LiveGrowCam />
 
             {/* Environment Controls */}
             <EnvironmentControls
