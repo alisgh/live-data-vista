@@ -11,6 +11,15 @@ const Index = () => {
   const { data, connectionStatus, sendMessage, reconnect } = useWebSocket('ws://192.168.0.229:8085');
   const { toast } = useToast();
 
+  // Default data with 0 values when no WebSocket data is available
+  const defaultData = {
+    inputs: Array.from({ length: 8 }, (_, i) => ({ name: `Input${i + 1}`, value: 0 })),
+    analog: Array.from({ length: 4 }, (_, i) => ({ name: `Analog${i + 1}`, value: 0 })),
+    outputs: Array.from({ length: 8 }, (_, i) => ({ name: `Output${i + 1}`, value: 0 }))
+  };
+
+  const displayData = data || defaultData;
+
   const handleToggleOutput = (name: string, currentValue: number) => {
     const newValue = currentValue === 1 ? 0 : 1;
     const message = { name, value: newValue };
@@ -64,42 +73,27 @@ const Index = () => {
               </div>
             </div>
           </div>
-        ) : data ? (
+        ) : (
           <>
             {/* Digital Inputs */}
-            {data.inputs && data.inputs.length > 0 && (
-              <InputDisplay inputs={data.inputs} />
+            {displayData.inputs && displayData.inputs.length > 0 && (
+              <InputDisplay inputs={displayData.inputs} />
             )}
 
             {/* Analog Inputs */}
-            {data.analog && data.analog.length > 0 && (
-              <AnalogDisplay analog={data.analog} />
+            {displayData.analog && displayData.analog.length > 0 && (
+              <AnalogDisplay analog={displayData.analog} />
             )}
 
             {/* Digital Outputs */}
-            {data.outputs && data.outputs.length > 0 && (
+            {displayData.outputs && displayData.outputs.length > 0 && (
               <OutputControl
-                outputs={data.outputs}
+                outputs={displayData.outputs}
                 onToggleOutput={handleToggleOutput}
                 connectionStatus={connectionStatus}
               />
             )}
           </>
-        ) : (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center space-y-4">
-              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-              <div>
-                <h3 className="text-lg font-medium">Waiting for data...</h3>
-                <p className="text-muted-foreground">
-                  {connectionStatus === 'connected' 
-                    ? 'Connected to WebSocket, waiting for first message'
-                    : 'Connecting to WebSocket server at ws://192.168.0.229:8085'
-                  }
-                </p>
-              </div>
-            </div>
-          </div>
         )}
 
         {/* Footer Info */}
@@ -112,7 +106,7 @@ const Index = () => {
               <strong>Status:</strong> {connectionStatus}
             </div>
             <div>
-              <strong>Last Update:</strong> {data ? new Date().toLocaleTimeString() : 'Never'}
+              <strong>Last Update:</strong> {data ? new Date().toLocaleTimeString() : 'Using default values'}
             </div>
           </div>
         </div>
