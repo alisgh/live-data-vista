@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import ConnectionStatus from '@/components/ConnectionStatus';
@@ -68,8 +67,8 @@ const Index = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-green-400">🌿 Smart Grow Box</h1>
-              <p className="text-gray-400">Intelligent cultivation monitoring</p>
+              <h1 className="text-2xl font-bold text-green-400">🌿 BudBox</h1>
+              <p className="text-gray-400">Smart grow box dashboard</p>
             </div>
             <ConnectionStatus status={connectionStatus} onReconnect={reconnect} />
           </div>
