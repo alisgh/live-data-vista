@@ -19,8 +19,22 @@ export const useWebSocket = (url: string): UseWebSocketReturn => {
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error' | 'blocked'>('connecting');
   const ws = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
 
   const connect = useCallback(() => {
+    // Clear any existing timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+
+    // Check if we've exceeded max attempts
+    if (reconnectAttempts.current >= maxReconnectAttempts) {
+      console.log('Max reconnection attempts reached');
+      setConnectionStatus('error');
+      return;
+    }
+
     try {
       setConnectionStatus('connecting');
       
@@ -34,11 +48,17 @@ export const useWebSocket = (url: string): UseWebSocketReturn => {
         return;
       }
       
+      // Close existing connection if any
+      if (ws.current) {
+        ws.current.close();
+      }
+      
       ws.current = new WebSocket(url);
 
       ws.current.onopen = () => {
         console.log('WebSocket connected');
         setConnectionStatus('connected');
+        reconnectAttempts.current = 0; // Reset attempts on successful connection
       };
 
       ws.current.onmessage = (event) => {
@@ -50,15 +70,19 @@ export const useWebSocket = (url: string): UseWebSocketReturn => {
         }
       };
 
-      ws.current.onclose = () => {
-        console.log('WebSocket disconnected');
+      ws.current.onclose = (event) => {
+        console.log('WebSocket disconnected', event.code, event.reason);
         setConnectionStatus('disconnected');
         
-        // Auto-reconnect after 3 seconds only if not blocked
-        if (connectionStatus !== 'blocked') {
+        // Only auto-reconnect if it wasn't a manual close and we haven't exceeded attempts
+        if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
+          reconnectAttempts.current++;
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 10000); // Exponential backoff
+          console.log(`Attempting reconnection ${reconnectAttempts.current}/${maxReconnectAttempts} in ${delay}ms`);
+          
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
-          }, 3000);
+          }, delay);
         }
       };
 
@@ -76,15 +100,19 @@ export const useWebSocket = (url: string): UseWebSocketReturn => {
         setConnectionStatus('error');
       }
     }
-  }, [url, connectionStatus]);
+  }, [url]);
 
   const sendMessage = useCallback((message: any) => {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify(message));
+    } else {
+      console.warn('Cannot send message: WebSocket not connected');
     }
   }, []);
 
   const reconnect = useCallback(() => {
+    console.log('Manual reconnection initiated');
+    reconnectAttempts.current = 0; // Reset attempts for manual reconnection
     if (ws.current) {
       ws.current.close();
     }
