@@ -8,7 +8,7 @@ import OutputControl from '@/components/OutputControl';
 import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
-  const { data, connectionStatus, sendMessage, reconnect } = useWebSocket('ws://localhost:8081');
+  const { data, connectionStatus, sendMessage, reconnect } = useWebSocket('ws://192.168.0.229:8085');
   const { toast } = useToast();
 
   const handleToggleOutput = (name: string, currentValue: number) => {
@@ -73,7 +73,7 @@ const Index = () => {
                 <p className="text-muted-foreground">
                   {connectionStatus === 'connected' 
                     ? 'Connected to WebSocket, waiting for first message'
-                    : 'Connecting to WebSocket server at ws://localhost:8081'
+                    : 'Connecting to WebSocket server at ws://192.168.0.229:8085'
                   }
                 </p>
               </div>
@@ -85,7 +85,7 @@ const Index = () => {
         <div className="mt-8 p-4 bg-muted/50 rounded-lg">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
-              <strong>Server:</strong> ws://localhost:8081
+              <strong>Server:</strong> ws://192.168.0.229:8085
             </div>
             <div>
               <strong>Status:</strong> {connectionStatus}
