@@ -14,13 +14,31 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
   const [isVisible, setIsVisible] = useState(true);
   const [isOnline, setIsOnline] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const imgRef = useRef<HTMLImageElement>(null);
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-refresh the stream every 10 seconds to prevent black screen
+  useEffect(() => {
+    if (isVisible) {
+      refreshIntervalRef.current = setInterval(() => {
+        console.log('Auto-refreshing camera stream to prevent timeout');
+        setRefreshKey(prev => prev + 1);
+      }, 10000); // Refresh every 10 seconds
+    }
+
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+    };
+  }, [isVisible]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
-    if (isVisible) {
-      // Update the "last updated" timestamp every 2 seconds when visible
+    if (isVisible && isOnline) {
+      // Update the "last updated" timestamp every 2 seconds when visible and online
       interval = setInterval(() => {
         setLastUpdate(new Date());
       }, 2000);
@@ -32,7 +50,7 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isVisible]);
+  }, [isVisible, isOnline]);
 
   const handleImageLoad = () => {
     setIsOnline(true);
@@ -41,11 +59,20 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
 
   const handleImageError = () => {
     setIsOnline(false);
-    console.log('Camera stream failed to load');
+    console.log('Camera stream failed to load, will retry in 10s');
+    // Try to refresh after a short delay
+    setTimeout(() => {
+      setRefreshKey(prev => prev + 1);
+    }, 3000);
   };
 
   const toggleVisibility = () => {
     setIsVisible(!isVisible);
+  };
+
+  const manualRefresh = () => {
+    console.log('Manual refresh triggered');
+    setRefreshKey(prev => prev + 1);
   };
 
   const getStatusText = () => {
@@ -72,14 +99,25 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
             <Camera className="h-5 w-5" />
             Live Grow Cam
           </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleVisibility}
-            className="text-gray-400 hover:text-green-400 hover:bg-green-400/10"
-          >
-            {isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={manualRefresh}
+              className="text-gray-400 hover:text-green-400 hover:bg-green-400/10"
+              disabled={!isVisible}
+            >
+              🔄
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleVisibility}
+              className="text-gray-400 hover:text-green-400 hover:bg-green-400/10"
+            >
+              {isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
         <div className="flex items-center justify-between">
           <div className={`flex items-center gap-2 text-sm ${getStatusColor()}`}>
@@ -95,7 +133,7 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
             <div className="aspect-video w-full bg-gray-900 rounded-lg overflow-hidden shadow-lg border border-gray-600">
               <img
                 ref={imgRef}
-                src={streamUrl}
+                src={`${streamUrl}?t=${refreshKey}`}
                 alt="Live grow cam feed"
                 className="w-full h-full object-cover"
                 onLoad={handleImageLoad}
