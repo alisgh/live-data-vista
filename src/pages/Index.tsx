@@ -10,7 +10,7 @@ import LiveGrowCam from '@/components/LiveGrowCam';
 import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
-  const { data, connectionStatus, reconnect, writeRegister } = useWebSocket('ws://192.168.0.229:8085');
+  const { data, connectionStatus, reconnect, writeVariable } = useWebSocket('ws://192.168.0.143:8085');
   const { toast } = useToast();
   
   // Plant info state
@@ -23,22 +23,15 @@ const Index = () => {
   const handleToggleControl = (control: 'light1' | 'vent1', currentValue: number) => {
     const newValue = currentValue === 1 ? 0 : 1;
     
-    // Map control names to PLC register addresses
-    const addressMap = {
-      light1: 0,  // Register 0 for light1
-      vent1: 1    // Register 1 for vent1
-    };
-    
-    const address = addressMap[control];
-    writeRegister(address, newValue);
+    writeVariable(control, newValue);
     
     toast({
       title: "Control Command Sent",
-      description: `${control.toUpperCase()} → ${newValue === 1 ? 'ON' : 'OFF'} (Register ${address})`,
+      description: `${control.toUpperCase()} → ${newValue === 1 ? 'ON' : 'OFF'}`,
       duration: 3000,
     });
     
-    console.log(`Toggling ${control}: ${currentValue} → ${newValue} (Register ${address})`);
+    console.log(`Toggling ${control}: ${currentValue} → ${newValue}`);
   };
 
   const handlePlantNameChange = (newName: string) => {
@@ -167,7 +160,7 @@ const Index = () => {
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
               <strong className="text-green-400">PLC Server:</strong> 
-              <span className="font-mono">ws://192.168.0.229:8085</span>
+              <span className="font-mono">ws://192.168.0.143:8085</span>
             </div>
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>

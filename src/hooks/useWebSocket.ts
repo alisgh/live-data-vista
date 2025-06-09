@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface WebSocketData {
@@ -13,7 +12,7 @@ interface UseWebSocketReturn {
   connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error' | 'blocked';
   sendMessage: (message: any) => void;
   reconnect: () => void;
-  writeRegister: (address: number, value: number) => void;
+  writeVariable: (name: string, value: number) => void;
 }
 
 export const useWebSocket = (url: string): UseWebSocketReturn => {
@@ -114,14 +113,14 @@ export const useWebSocket = (url: string): UseWebSocketReturn => {
     }
   }, []);
 
-  const writeRegister = useCallback((address: number, value: number) => {
+  const writeVariable = useCallback((name: string, value: number) => {
     const command = {
       type: 'write',
-      address,
+      name,
       value
     };
     sendMessage(command);
-    console.log(`Writing register ${address} = ${value}`);
+    console.log(`Writing variable ${name} = ${value}`);
   }, [sendMessage]);
 
   const reconnect = useCallback(() => {
@@ -151,6 +150,6 @@ export const useWebSocket = (url: string): UseWebSocketReturn => {
     connectionStatus,
     sendMessage,
     reconnect,
-    writeRegister,
+    writeVariable,
   };
 };
