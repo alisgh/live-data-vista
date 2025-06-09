@@ -2,9 +2,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface WebSocketData {
-  inputs: Array<{ name: string; value: number }>;
-  analog: Array<{ name: string; value: number }>;
-  outputs: Array<{ name: string; value: number }>;
+  light1: number;
+  vent1: number;
+  temp1: number;
+  humidity1: number;
 }
 
 interface UseWebSocketReturn {
@@ -12,6 +13,7 @@ interface UseWebSocketReturn {
   connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error' | 'blocked';
   sendMessage: (message: any) => void;
   reconnect: () => void;
+  writeRegister: (address: number, value: number) => void;
 }
 
 export const useWebSocket = (url: string): UseWebSocketReturn => {
@@ -56,7 +58,7 @@ export const useWebSocket = (url: string): UseWebSocketReturn => {
       ws.current = new WebSocket(url);
 
       ws.current.onopen = () => {
-        console.log('WebSocket connected');
+        console.log('WebSocket connected to PLC server');
         setConnectionStatus('connected');
         reconnectAttempts.current = 0; // Reset attempts on successful connection
       };
@@ -64,6 +66,7 @@ export const useWebSocket = (url: string): UseWebSocketReturn => {
       ws.current.onmessage = (event) => {
         try {
           const parsedData = JSON.parse(event.data);
+          console.log('Received PLC data:', parsedData);
           setData(parsedData);
         } catch (error) {
           console.error('Error parsing WebSocket data:', error);
@@ -105,10 +108,21 @@ export const useWebSocket = (url: string): UseWebSocketReturn => {
   const sendMessage = useCallback((message: any) => {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify(message));
+      console.log('Sent WebSocket message:', message);
     } else {
       console.warn('Cannot send message: WebSocket not connected');
     }
   }, []);
+
+  const writeRegister = useCallback((address: number, value: number) => {
+    const command = {
+      type: 'write',
+      address,
+      value
+    };
+    sendMessage(command);
+    console.log(`Writing register ${address} = ${value}`);
+  }, [sendMessage]);
 
   const reconnect = useCallback(() => {
     console.log('Manual reconnection initiated');
@@ -137,5 +151,6 @@ export const useWebSocket = (url: string): UseWebSocketReturn => {
     connectionStatus,
     sendMessage,
     reconnect,
+    writeRegister,
   };
 };

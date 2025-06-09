@@ -2,37 +2,18 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Thermometer, Droplets } from 'lucide-react';
+import { Thermometer, Droplets, AlertTriangle } from 'lucide-react';
 
 interface GrowStatsProps {
   data: {
-    inputs?: Array<{ name: string; value: number }>;
-    analog?: Array<{ name: string; value: number }>;
-  };
+    temp1?: number;
+    humidity1?: number;
+  } | null;
 }
 
 const GrowStats: React.FC<GrowStatsProps> = ({ data }) => {
-  // Extract temperature and humidity from either inputs or analog data
-  const getTemperature = () => {
-    const tempFromInputs = data.inputs?.find(item => item.name.toLowerCase().includes('temperature'));
-    const tempFromAnalog = data.analog?.find(item => item.name.toLowerCase().includes('temperature'));
-    
-    if (tempFromInputs) return tempFromInputs.value;
-    if (tempFromAnalog) return tempFromAnalog.value / 10; // Assuming analog is in tenths
-    return 24.5; // Default
-  };
-
-  const getHumidity = () => {
-    const humidityFromInputs = data.inputs?.find(item => item.name.toLowerCase().includes('humidity'));
-    const humidityFromAnalog = data.analog?.find(item => item.name.toLowerCase().includes('humidity'));
-    
-    if (humidityFromInputs) return humidityFromInputs.value;
-    if (humidityFromAnalog) return humidityFromAnalog.value / 10; // Assuming analog is in tenths
-    return 65; // Default
-  };
-
-  const temperature = getTemperature();
-  const humidity = getHumidity();
+  const temperature = data?.temp1 ?? 24.5;
+  const humidity = data?.humidity1 ?? 65;
 
   const getTempColor = () => {
     if (temperature < 18) return 'bg-blue-500';
@@ -55,12 +36,22 @@ const GrowStats: React.FC<GrowStatsProps> = ({ data }) => {
   const humidityStatus = humidity >= 50 && humidity <= 70 ? 'Optimal' : 
                         humidity < 50 ? 'Too Dry' : 'Too Humid';
 
+  const isOutOfRange = tempStatus !== 'Optimal' || humidityStatus !== 'Optimal';
+
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/60 transition-all duration-300 backdrop-blur-sm">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-green-400">
-          <Thermometer className="h-5 w-5" />
+        <CardTitle className="flex items-center gap-3 text-green-400">
+          <div className="p-2 bg-green-400/10 rounded-lg">
+            <Thermometer className="h-5 w-5" />
+          </div>
           Environmental Conditions
+          {isOutOfRange && (
+            <div className="flex items-center gap-1 text-orange-400">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="text-xs font-medium">Alert</span>
+            </div>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -73,7 +64,9 @@ const GrowStats: React.FC<GrowStatsProps> = ({ data }) => {
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold text-white">{temperature.toFixed(1)}°C</div>
-              <div className={`text-xs ${tempStatus === 'Optimal' ? 'text-green-400' : 'text-yellow-400'}`}>
+              <div className={`text-xs font-medium transition-colors duration-200 ${
+                tempStatus === 'Optimal' ? 'text-green-400' : 'text-orange-400'
+              }`}>
                 {tempStatus}
               </div>
             </div>
@@ -81,14 +74,14 @@ const GrowStats: React.FC<GrowStatsProps> = ({ data }) => {
           <div className="relative">
             <Progress 
               value={Math.min((temperature / 40) * 100, 100)} 
-              className="h-2"
+              className="h-3 bg-gray-700"
             />
-            <div className={`absolute inset-0 rounded-full ${getTempColor()}`} 
+            <div className={`absolute inset-y-0 left-0 rounded-full transition-all duration-300 ${getTempColor()}`} 
                  style={{ width: `${Math.min((temperature / 40) * 100, 100)}%` }} />
           </div>
           <div className="flex justify-between text-xs text-gray-500">
             <span>0°C</span>
-            <span>Ideal: 20-30°C</span>
+            <span className="text-green-400 font-medium">Ideal: 20-30°C</span>
             <span>40°C</span>
           </div>
         </div>
@@ -102,7 +95,9 @@ const GrowStats: React.FC<GrowStatsProps> = ({ data }) => {
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold text-white">{humidity.toFixed(0)}%</div>
-              <div className={`text-xs ${humidityStatus === 'Optimal' ? 'text-green-400' : 'text-yellow-400'}`}>
+              <div className={`text-xs font-medium transition-colors duration-200 ${
+                humidityStatus === 'Optimal' ? 'text-green-400' : 'text-orange-400'
+              }`}>
                 {humidityStatus}
               </div>
             </div>
@@ -110,15 +105,27 @@ const GrowStats: React.FC<GrowStatsProps> = ({ data }) => {
           <div className="relative">
             <Progress 
               value={humidity} 
-              className="h-2"
+              className="h-3 bg-gray-700"
             />
-            <div className={`absolute inset-0 rounded-full ${getHumidityColor()}`} 
+            <div className={`absolute inset-y-0 left-0 rounded-full transition-all duration-300 ${getHumidityColor()}`} 
                  style={{ width: `${Math.min(humidity, 100)}%` }} />
           </div>
           <div className="flex justify-between text-xs text-gray-500">
             <span>0%</span>
-            <span>Ideal: 50-70%</span>
+            <span className="text-green-400 font-medium">Ideal: 50-70%</span>
             <span>100%</span>
+          </div>
+        </div>
+
+        {/* Live Data Indicator */}
+        <div className="pt-4 border-t border-gray-700">
+          <div className="flex items-center justify-center gap-2 text-xs">
+            <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
+              data ? 'bg-green-400 animate-pulse' : 'bg-gray-500'
+            }`} />
+            <span className="text-gray-400">
+              {data ? 'Live data from PLC' : 'Demo data'}
+            </span>
           </div>
         </div>
       </CardContent>

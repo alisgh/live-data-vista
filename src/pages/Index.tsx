@@ -10,7 +10,7 @@ import LiveGrowCam from '@/components/LiveGrowCam';
 import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
-  const { data, connectionStatus, sendMessage, reconnect } = useWebSocket('ws://192.168.0.229:8085');
+  const { data, connectionStatus, reconnect, writeRegister } = useWebSocket('ws://192.168.0.229:8085');
   const { toast } = useToast();
   
   // Plant info state
@@ -20,37 +20,25 @@ const Index = () => {
   // Calculate grow days
   const growDays = Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 
-  // Default data for demo/offline mode
-  const defaultData = {
-    inputs: [
-      { name: 'Temperature', value: 24.5 },
-      { name: 'Humidity', value: 65 }
-    ],
-    analog: [
-      { name: 'Temperature', value: 245 }, // representing 24.5°C
-      { name: 'Humidity', value: 650 }     // representing 65%
-    ],
-    outputs: [
-      { name: 'GrowLight', value: 1 },
-      { name: 'Ventilation', value: 1 }
-    ]
-  };
-
-  const displayData = data || defaultData;
-
-  const handleToggleControl = (controlName: string, currentValue: number) => {
+  const handleToggleControl = (control: 'light1' | 'vent1', currentValue: number) => {
     const newValue = currentValue === 1 ? 0 : 1;
-    const message = { name: controlName, value: newValue };
     
-    sendMessage(message);
+    // Map control names to PLC register addresses
+    const addressMap = {
+      light1: 0,  // Register 0 for light1
+      vent1: 1    // Register 1 for vent1
+    };
+    
+    const address = addressMap[control];
+    writeRegister(address, newValue);
     
     toast({
-      title: "Control Updated",
-      description: `${controlName} turned ${newValue === 1 ? 'ON' : 'OFF'}`,
+      title: "Control Command Sent",
+      description: `${control.toUpperCase()} → ${newValue === 1 ? 'ON' : 'OFF'} (Register ${address})`,
       duration: 3000,
     });
     
-    console.log('Sent control message:', message);
+    console.log(`Toggling ${control}: ${currentValue} → ${newValue} (Register ${address})`);
   };
 
   const handlePlantNameChange = (newName: string) => {
@@ -126,7 +114,7 @@ const Index = () => {
                   />
                 </div>
                 <div className="transition-all duration-300 hover:scale-[1.02]">
-                  <GrowStats data={displayData} />
+                  <GrowStats data={data} />
                 </div>
               </div>
             </section>
@@ -150,7 +138,7 @@ const Index = () => {
               </div>
               <div className="transition-all duration-300 hover:scale-[1.01]">
                 <EnvironmentControls
-                  outputs={displayData.outputs}
+                  data={data}
                   onToggleControl={handleToggleControl}
                   connectionStatus={connectionStatus}
                 />
@@ -178,7 +166,7 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-400">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <strong className="text-green-400">Server:</strong> 
+              <strong className="text-green-400">PLC Server:</strong> 
               <span className="font-mono">ws://192.168.0.229:8085</span>
             </div>
             <div className="flex items-center gap-2">
@@ -188,8 +176,8 @@ const Index = () => {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-              <strong className="text-green-400">Mode:</strong> 
-              <span>{data ? 'Live Data' : 'Demo Mode'}</span>
+              <strong className="text-green-400">Data:</strong> 
+              <span>{data ? `Live (T:${data.temp1?.toFixed(1)}°C H:${data.humidity1?.toFixed(0)}%)` : 'Demo Mode'}</span>
             </div>
           </div>
         </footer>

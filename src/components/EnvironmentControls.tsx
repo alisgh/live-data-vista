@@ -4,40 +4,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Lightbulb, Wind, Settings } from 'lucide-react';
 
-interface OutputData {
-  name: string;
-  value: number;
+interface PLCData {
+  light1: number;
+  vent1: number;
+  temp1: number;
+  humidity1: number;
 }
 
 interface EnvironmentControlsProps {
-  outputs: OutputData[];
-  onToggleControl: (name: string, currentValue: number) => void;
+  data: PLCData | null;
+  onToggleControl: (control: 'light1' | 'vent1', currentValue: number) => void;
   connectionStatus: string;
 }
 
 const EnvironmentControls: React.FC<EnvironmentControlsProps> = ({ 
-  outputs, 
+  data, 
   onToggleControl, 
   connectionStatus 
 }) => {
   const isConnected = connectionStatus === 'connected';
-
-  const getGrowLight = () => {
-    return outputs.find(output => 
-      output.name.toLowerCase().includes('light') || 
-      output.name.toLowerCase().includes('growlight')
-    ) || { name: 'GrowLight', value: 1 };
-  };
-
-  const getVentilation = () => {
-    return outputs.find(output => 
-      output.name.toLowerCase().includes('vent') || 
-      output.name.toLowerCase().includes('fan')
-    ) || { name: 'Ventilation', value: 1 };
-  };
-
-  const growLight = getGrowLight();
-  const ventilation = getVentilation();
+  
+  const light1Value = data?.light1 ?? 0;
+  const vent1Value = data?.vent1 ?? 0;
 
   return (
     <Card className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/60 transition-all duration-300 backdrop-blur-sm">
@@ -56,7 +44,7 @@ const EnvironmentControls: React.FC<EnvironmentControlsProps> = ({
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
                 <div className={`p-3 rounded-xl transition-all duration-300 ${
-                  growLight.value === 1 
+                  light1Value === 1 
                     ? 'bg-yellow-500/20 text-yellow-400 shadow-yellow-400/20 shadow-lg' 
                     : 'bg-gray-600/50 text-gray-400'
                 }`}>
@@ -65,21 +53,21 @@ const EnvironmentControls: React.FC<EnvironmentControlsProps> = ({
                 <div>
                   <h3 className="font-semibold text-white text-lg">Grow Light</h3>
                   <p className="text-sm text-gray-400 mt-1">
-                    Full spectrum LED lighting
+                    PLC Output: light1
                   </p>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2">
                 <Switch
-                  checked={growLight.value === 1}
-                  onCheckedChange={() => onToggleControl(growLight.name, growLight.value)}
+                  checked={light1Value === 1}
+                  onCheckedChange={() => onToggleControl('light1', light1Value)}
                   disabled={!isConnected}
                   className="data-[state=checked]:bg-green-600 transition-all duration-200 scale-125"
                 />
                 <span className={`text-xs font-medium transition-colors duration-200 ${
-                  !isConnected ? 'text-gray-500' : growLight.value === 1 ? 'text-green-400' : 'text-gray-400'
+                  !isConnected ? 'text-gray-500' : light1Value === 1 ? 'text-green-400' : 'text-gray-400'
                 }`}>
-                  {isConnected ? (growLight.value === 1 ? 'ON' : 'OFF') : 'OFFLINE'}
+                  {isConnected ? (light1Value === 1 ? 'ON' : 'OFF') : 'OFFLINE'}
                 </span>
               </div>
             </div>
@@ -89,15 +77,15 @@ const EnvironmentControls: React.FC<EnvironmentControlsProps> = ({
                 <span className="text-gray-400">Power Status:</span>
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    growLight.value === 1 ? 'bg-green-400 animate-pulse' : 'bg-gray-500'
+                    light1Value === 1 ? 'bg-green-400 animate-pulse' : 'bg-gray-500'
                   }`} />
-                  <span className={`font-medium ${growLight.value === 1 ? 'text-green-400' : 'text-gray-400'}`}>
-                    {growLight.value === 1 ? 'Active' : 'Standby'}
+                  <span className={`font-medium ${light1Value === 1 ? 'text-green-400' : 'text-gray-400'}`}>
+                    {light1Value === 1 ? 'Active' : 'Standby'}
                   </span>
                 </div>
               </div>
               
-              {growLight.value === 1 && (
+              {light1Value === 1 && (
                 <div className="mt-4">
                   <div className="h-2 bg-yellow-500/20 rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-yellow-400 to-orange-400 animate-pulse rounded-full" />
@@ -113,7 +101,7 @@ const EnvironmentControls: React.FC<EnvironmentControlsProps> = ({
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
                 <div className={`p-3 rounded-xl transition-all duration-300 ${
-                  ventilation.value === 1 
+                  vent1Value === 1 
                     ? 'bg-blue-500/20 text-blue-400 shadow-blue-400/20 shadow-lg' 
                     : 'bg-gray-600/50 text-gray-400'
                 }`}>
@@ -122,21 +110,21 @@ const EnvironmentControls: React.FC<EnvironmentControlsProps> = ({
                 <div>
                   <h3 className="font-semibold text-white text-lg">Ventilation</h3>
                   <p className="text-sm text-gray-400 mt-1">
-                    Air circulation & exhaust
+                    PLC Output: vent1
                   </p>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2">
                 <Switch
-                  checked={ventilation.value === 1}
-                  onCheckedChange={() => onToggleControl(ventilation.name, ventilation.value)}
+                  checked={vent1Value === 1}
+                  onCheckedChange={() => onToggleControl('vent1', vent1Value)}
                   disabled={!isConnected}
                   className="data-[state=checked]:bg-green-600 transition-all duration-200 scale-125"
                 />
                 <span className={`text-xs font-medium transition-colors duration-200 ${
-                  !isConnected ? 'text-gray-500' : ventilation.value === 1 ? 'text-green-400' : 'text-gray-400'
+                  !isConnected ? 'text-gray-500' : vent1Value === 1 ? 'text-green-400' : 'text-gray-400'
                 }`}>
-                  {isConnected ? (ventilation.value === 1 ? 'ON' : 'OFF') : 'OFFLINE'}
+                  {isConnected ? (vent1Value === 1 ? 'ON' : 'OFF') : 'OFFLINE'}
                 </span>
               </div>
             </div>
@@ -146,15 +134,15 @@ const EnvironmentControls: React.FC<EnvironmentControlsProps> = ({
                 <span className="text-gray-400">Fan Status:</span>
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    ventilation.value === 1 ? 'bg-green-400 animate-pulse' : 'bg-gray-500'
+                    vent1Value === 1 ? 'bg-green-400 animate-pulse' : 'bg-gray-500'
                   }`} />
-                  <span className={`font-medium ${ventilation.value === 1 ? 'text-green-400' : 'text-gray-400'}`}>
-                    {ventilation.value === 1 ? 'Running' : 'Stopped'}
+                  <span className={`font-medium ${vent1Value === 1 ? 'text-green-400' : 'text-gray-400'}`}>
+                    {vent1Value === 1 ? 'Running' : 'Stopped'}
                   </span>
                 </div>
               </div>
               
-              {ventilation.value === 1 && (
+              {vent1Value === 1 && (
                 <div className="mt-4">
                   <div className="flex gap-1">
                     {[...Array(5)].map((_, i) => (
@@ -179,11 +167,27 @@ const EnvironmentControls: React.FC<EnvironmentControlsProps> = ({
                 <span className="text-orange-400 text-sm">🔌</span>
               </div>
               <p className="text-sm text-orange-300 font-medium">
-                Connect to WebSocket to control environment systems
+                Connect to PLC WebSocket to control environment systems
               </p>
             </div>
           </div>
         )}
+
+        {/* Real-time Data Status */}
+        <div className="mt-6 pt-4 border-t border-gray-700">
+          <div className="flex items-center justify-between text-xs text-gray-400">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                data ? 'bg-green-400 animate-pulse' : 'bg-gray-500'
+              }`} />
+              <span>{data ? 'Real-time PLC data' : 'Demo mode'}</span>
+            </div>
+            <div className="flex gap-4">
+              <span>Light1: {light1Value}</span>
+              <span>Vent1: {vent1Value}</span>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
