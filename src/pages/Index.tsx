@@ -10,7 +10,7 @@ import LiveGrowCam from '@/components/LiveGrowCam';
 import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
-  const { data, connectionStatus, reconnect, writeVariable } = useWebSocket('ws://192.168.0.143:8085');
+  const { data, connectionStatus, reconnect, writeVariable } = useWebSocket('ws://192.168.0.229:8085');
   const { toast } = useToast();
   
   // Plant info state
@@ -159,8 +159,8 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-400">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <strong className="text-green-400">PLC Server:</strong> 
-              <span className="font-mono">ws://192.168.0.143:8085</span>
+              <strong className="text-green-400">WebSocket Server:</strong> 
+              <span className="font-mono">ws://192.168.0.229:8085</span>
             </div>
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
