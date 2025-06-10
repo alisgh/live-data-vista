@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { usePLCDirect } from '@/hooks/usePLCDirect';
 import ConnectionStatus from '@/components/ConnectionStatus';
@@ -119,11 +118,7 @@ const Index = () => {
           </div>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <div className="transition-all duration-300 hover:scale-[1.02]">
-              <PlantInfo 
-                plantName={plantName}
-                growDays={growDays}
-                onNameChange={handlePlantNameChange}
-              />
+              <PlantInfo />
             </div>
             <div className="transition-all duration-300 hover:scale-[1.02]">
               <GrowStats data={data} />
