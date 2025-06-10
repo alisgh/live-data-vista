@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 
 interface PlantData {
@@ -8,7 +7,7 @@ interface PlantData {
   startDate: string;
 }
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = 'http://192.168.0.229:3001/api';
 
 export const usePlantData = () => {
   const [plantData, setPlantData] = useState<PlantData | null>(null);

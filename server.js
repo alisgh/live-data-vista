@@ -1,4 +1,3 @@
-
 const express = require('express');
 const Database = require('better-sqlite3');
 const cors = require('cors');
@@ -94,9 +93,10 @@ app.post('/api/plant/name', (req, res) => {
   }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Plant backend server running on http://localhost:${PORT}`);
+// Start server on all network interfaces
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Plant backend server running on http://0.0.0.0:${PORT}`);
+  console.log(`Also accessible at http://192.168.0.229:${PORT}`);
 });
 
 // Graceful shutdown
