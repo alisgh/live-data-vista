@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface PLCData {
@@ -22,8 +21,9 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const pollIntervalRef = useRef<NodeJS.Timeout>();
 
-  const getUrl = `http://${controllerIp}/getvar.csv`;
-  const setUrl = `http://${controllerIp}/setvar.csv`;
+  // Use proxy URLs instead of direct PLC URLs
+  const getUrl = `/plc/getvar.csv`;
+  const setUrl = `/plc/setvar.csv`;
 
   // Parse CSV data
   const parseCsvLine = (line: string): string[] => {
