@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface WebSocketData {
@@ -115,27 +114,22 @@ export const useWebSocket = (url: string): UseWebSocketReturn => {
   }, []);
 
   const writeVariable = useCallback((name: string, value: number) => {
-    // Variable name to Modbus address mapping
-    const variableMap: Record<string, number> = {
-      light1: 0,
-      vent1: 1
-    };
-
-    const address = variableMap[name];
+    // Variable name validation
+    const validVariables = ['light1', 'vent1', 'temp1', 'humidity1'];
     
-    if (address === undefined) {
-      console.warn(`Unknown variable name: ${name}. Valid names are: ${Object.keys(variableMap).join(', ')}`);
+    if (!validVariables.includes(name)) {
+      console.warn(`Unknown variable name: ${name}. Valid names are: ${validVariables.join(', ')}`);
       return;
     }
 
     const command = {
       type: 'write',
-      address,
+      name,
       value
     };
     
     sendMessage(command);
-    console.log(`Writing variable ${name} (address ${address}) = ${value}`);
+    console.log(`Writing variable ${name} = ${value}`);
   }, [sendMessage]);
 
   const reconnect = useCallback(() => {
