@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface PLCData {
@@ -89,16 +90,22 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
         }
       }
       
-      // Ensure we have all required fields
-      const result: PLCData = {
-        humidity1: plcData.humidity1 ?? -999.9,
-        light1: plcData.light1 ?? 0,
-        temp1: plcData.temp1 ?? 0,
-        vent1: plcData.vent1 ?? 0,
-      };
+      // Only return data if we have all required fields from CSV
+      if (plcData.humidity1 !== undefined && plcData.light1 !== undefined && 
+          plcData.temp1 !== undefined && plcData.vent1 !== undefined) {
+        const result: PLCData = {
+          humidity1: plcData.humidity1,
+          light1: plcData.light1,
+          temp1: plcData.temp1,
+          vent1: plcData.vent1,
+        };
+        
+        setConnectionStatus('connected');
+        return result;
+      }
       
-      setConnectionStatus('connected');
-      return result;
+      setConnectionStatus('error');
+      return null;
       
     } catch (error) {
       console.error('Error fetching PLC data:', error);
@@ -109,7 +116,7 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
     }
   }, [controllerIp, getUrl]);
 
-  // Write variable to PLC
+  // Write variable to PLC - matching your PHP implementation
   const writeVariable = useCallback(async (name: string, value: number): Promise<void> => {
     if (!controllerIp) {
       throw new Error('No controller IP configured');
@@ -121,6 +128,7 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
     }
 
     try {
+      // Create form data similar to your PHP implementation
       const formData = new URLSearchParams();
       formData.append(name, value.toString());
 
