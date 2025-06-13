@@ -3,7 +3,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface PLCData {
   light1: number;
+  light2: number;
   vent1: number;
+  vent2: number;
   temp1: number;
   humidity1: number;
 }
@@ -84,20 +86,24 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
           continue;
         }
         
-        // Map to our data structure
-        if (name === 'humidity1' || name === 'light1' || name === 'temp1' || name === 'vent1') {
+        // Map to our data structure - now includes light2 and vent2
+        if (name === 'humidity1' || name === 'light1' || name === 'light2' || 
+            name === 'temp1' || name === 'vent1' || name === 'vent2') {
           plcData[name as keyof PLCData] = value;
         }
       }
       
       // Only return data if we have all required fields from CSV
       if (plcData.humidity1 !== undefined && plcData.light1 !== undefined && 
-          plcData.temp1 !== undefined && plcData.vent1 !== undefined) {
+          plcData.light2 !== undefined && plcData.temp1 !== undefined && 
+          plcData.vent1 !== undefined && plcData.vent2 !== undefined) {
         const result: PLCData = {
           humidity1: plcData.humidity1,
           light1: plcData.light1,
+          light2: plcData.light2,
           temp1: plcData.temp1,
           vent1: plcData.vent1,
+          vent2: plcData.vent2,
         };
         
         setConnectionStatus('connected');
@@ -122,7 +128,7 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
       throw new Error('No controller IP configured');
     }
 
-    const validVariables = ['light1', 'vent1'];
+    const validVariables = ['light1', 'light2', 'vent1', 'vent2'];
     if (!validVariables.includes(name)) {
       throw new Error(`Invalid variable name: ${name}. Valid names: ${validVariables.join(', ')}`);
     }

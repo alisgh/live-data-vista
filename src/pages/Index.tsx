@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePLCDirect } from '@/hooks/usePLCDirect';
@@ -24,7 +25,7 @@ const Index = () => {
   // Calculate grow days
   const growDays = Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 
-  const handleToggleControl = async (control: 'light1' | 'vent1', currentValue: number) => {
+  const handleToggleControl = async (control: 'light1' | 'light2' | 'vent1' | 'vent2', currentValue: number) => {
     const newValue = currentValue === 1 ? 0 : 1;
     
     try {
