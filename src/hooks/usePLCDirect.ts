@@ -23,6 +23,7 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected');
   const [isLoading, setIsLoading] = useState(false);
   const pollIntervalRef = useRef<NodeJS.Timeout>();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Use proxy URLs instead of direct PLC URLs
   const getUrl = `/plc/getvar.csv`;
@@ -53,15 +54,32 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
   const fetchPLCData = useCallback(async (): Promise<PLCData | null> => {
     if (!controllerIp) return null;
 
+    // Cancel previous request if still pending
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    abortControllerRef.current = new AbortController();
+
     try {
       setIsLoading(true);
-      const response = await fetch(getUrl);
+      console.log(`Attempting to fetch PLC data from: ${getUrl}`);
+      
+      const response = await fetch(getUrl, {
+        signal: abortControllerRef.current.signal,
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const csvText = await response.text();
+      console.log('PLC response received, length:', csvText.length);
+      
       const lines = csvText.trim().split('\n');
       
       // Skip header row
@@ -106,19 +124,27 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
           vent2: plcData.vent2,
         };
         
+        console.log('✓ PLC data parsed successfully:', result);
         setConnectionStatus('connected');
         return result;
       }
       
+      console.warn('Missing required PLC variables in response');
       setConnectionStatus('error');
       return null;
       
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log('PLC request aborted');
+        return null;
+      }
+      
       console.error('Error fetching PLC data:', error);
       setConnectionStatus('error');
       return null;
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
   }, [controllerIp, getUrl]);
 
@@ -134,6 +160,8 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
     }
 
     try {
+      console.log(`Writing ${name}=${value} to PLC...`);
+      
       // Create form data similar to your PHP implementation
       const formData = new URLSearchParams();
       formData.append(name, value.toString());
@@ -142,6 +170,8 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         },
         body: formData.toString(),
       });
@@ -182,19 +212,23 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
       return;
     }
 
+    console.log(`Setting up PLC connection to: ${controllerIp}`);
     setConnectionStatus('connecting');
     
     // Initial fetch
     refreshData();
     
-    // Setup polling interval
+    // Setup polling interval (reduced frequency to avoid overwhelming the PLC)
     pollIntervalRef.current = setInterval(() => {
       refreshData();
-    }, 1000);
+    }, 2000); // Increased from 1000ms to 2000ms
 
     return () => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     };
   }, [controllerIp, refreshData]);

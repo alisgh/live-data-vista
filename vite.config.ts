@@ -14,12 +14,14 @@ export default defineConfig(({ mode }) => ({
         target: 'http://192.168.0.213',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/plc/, ''),
+        timeout: 30000,
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {
-            console.log('PLC proxy error:', err);
+            console.log('PLC proxy error:', err.message);
+            console.log('Target URL:', `http://192.168.0.213${req.url}`);
           });
           proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('Sending Request to PLC:', req.method, req.url);
+            console.log('Sending Request to PLC:', req.method, `http://192.168.0.213${req.url}`);
           });
           proxy.on('proxyRes', (proxyRes, req, res) => {
             console.log('Received Response from PLC:', proxyRes.statusCode, req.url);
