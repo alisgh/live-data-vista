@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { usePLCDirect } from '@/hooks/usePLCDirect';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,7 +32,7 @@ const plcVariables = [
 ];
 
 const PLCConfigPage = () => {
-  const [controllerIp, setControllerIp] = useState('192.168.0.148');
+  const [controllerIp, setControllerIp] = useState('192.168.0.213');
   const { data, connectionStatus, writeVariable, refreshData } = usePLCDirect(controllerIp);
   const { toast } = useToast();
   
@@ -168,6 +167,9 @@ const PLCConfigPage = () => {
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh Data
               </Button>
+              <div className="text-sm text-yellow-400">
+                Note: IP changes require dev server restart for proxy updates
+              </div>
             </div>
           </CardContent>
         </Card>

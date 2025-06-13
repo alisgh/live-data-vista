@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/plc': {
-        target: 'http://192.168.0.148',
+        target: 'http://192.168.0.213',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/plc/, ''),
         configure: (proxy, options) => {

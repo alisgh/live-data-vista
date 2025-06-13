@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePLCDirect } from '@/hooks/usePLCDirect';
@@ -14,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 
 const Index = () => {
-  const [controllerIp, setControllerIp] = useState('192.168.0.148');
+  const [controllerIp, setControllerIp] = useState('192.168.0.213');
   const { data, connectionStatus, writeVariable, refreshData, isLoading } = usePLCDirect(controllerIp);
   const { toast } = useToast();
   
@@ -62,8 +61,8 @@ const Index = () => {
     setControllerIp(newIp);
     toast({
       title: "IP Address Updated",
-      description: `Controller IP set to ${newIp}`,
-      duration: 3000,
+      description: `Controller IP set to ${newIp}. Note: You may need to restart the dev server for proxy changes to take effect.`,
+      duration: 5000,
     });
   };
 
@@ -194,7 +193,7 @@ const Index = () => {
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
               <strong className="text-green-400">Data:</strong> 
-              <span>{data ? `Live (T:${data.temp1?.toFixed(1)}°C H:${data.humidity1?.toFixed(0)}%)` : 'No Data'}</span>
+              <span>{data ? `Live (Available)` : 'No Data'}</span>
             </div>
           </div>
         </footer>
