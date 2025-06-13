@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface PLCData {
@@ -6,8 +5,8 @@ interface PLCData {
   light2: number;
   vent1: number;
   vent2: number;
-  temp1: number;
-  humidity1: number;
+  temp1?: number;
+  humidity1?: number;
 }
 
 interface UsePLCDirectReturn {
@@ -137,8 +136,8 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
       console.log('Found variables:', foundVariables);
       console.log('Parsed PLC data:', plcData);
       
-      // Check if we have all required fields
-      const requiredFields = ['light1', 'light2', 'vent1', 'vent2', 'temp1', 'humidity1'];
+      // Check if we have all required fields (temp1 and humidity1 are now optional)
+      const requiredFields = ['light1', 'light2', 'vent1', 'vent2'];
       const missingFields = requiredFields.filter(field => plcData[field as keyof PLCData] === undefined);
       
       if (missingFields.length === 0) {
@@ -147,8 +146,8 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
           light2: plcData.light2!,
           vent1: plcData.vent1!,
           vent2: plcData.vent2!,
-          temp1: plcData.temp1!,
-          humidity1: plcData.humidity1!,
+          ...(plcData.temp1 !== undefined && { temp1: plcData.temp1 }),
+          ...(plcData.humidity1 !== undefined && { humidity1: plcData.humidity1 }),
         };
         
         console.log('✓ PLC data parsed successfully:', result);
