@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -9,8 +8,8 @@ interface PLCData {
   light2: number;
   vent1: number;
   vent2: number;
-  temp1: number;
-  humidity1: number;
+  temp1?: number;
+  humidity1?: number;
 }
 
 interface EnvironmentControlsProps {
