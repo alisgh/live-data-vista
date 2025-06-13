@@ -1,4 +1,6 @@
+
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { usePLCDirect } from '@/hooks/usePLCDirect';
 import ConnectionStatus from '@/components/ConnectionStatus';
 import GrowStats from '@/components/GrowStats';
@@ -8,6 +10,8 @@ import PlantInfo from '@/components/PlantInfo';
 import LiveGrowCam from '@/components/LiveGrowCam';
 import PLCConfig from '@/components/PLCConfig';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Settings } from 'lucide-react';
 
 const Index = () => {
   const [controllerIp, setControllerIp] = useState('192.168.0.148');
@@ -89,7 +93,15 @@ const Index = () => {
                 <p className="text-gray-400 text-sm">Smart grow box dashboard</p>
               </div>
             </div>
-            <ConnectionStatus status={connectionStatus} onReconnect={reconnect} />
+            <div className="flex items-center gap-4">
+              <Link to="/plc-config">
+                <Button variant="outline" className="border-purple-600 text-purple-400 hover:bg-purple-600/20">
+                  <Settings className="h-4 w-4 mr-2" />
+                  PLC Variables
+                </Button>
+              </Link>
+              <ConnectionStatus status={connectionStatus} onReconnect={reconnect} />
+            </div>
           </div>
         </div>
       </header>
