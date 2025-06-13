@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface PLCData {
@@ -80,11 +81,13 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
       console.log('PLC response received, length:', csvText.length);
       
       const lines = csvText.trim().split('\n');
+      console.log('CSV lines count:', lines.length);
       
       // Skip header row
       const dataLines = lines.slice(1);
       
       const plcData: Partial<PLCData> = {};
+      const foundVariables: string[] = [];
       
       for (const line of dataLines) {
         const row = parseCsvLine(line);
@@ -93,6 +96,12 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
         const name = row[0];
         const dataType = row[3];
         const valueStr = row[5];
+        
+        // Log all variable names for debugging
+        if (name && (name.toLowerCase().includes('light') || name.toLowerCase().includes('vent') || 
+                     name.toLowerCase().includes('temp') || name.toLowerCase().includes('humid'))) {
+          console.log(`Found potential variable: "${name}" = "${valueStr}" (type: ${dataType})`);
+        }
         
         let value: number;
         if (dataType.includes('REAL')) {
@@ -103,34 +112,54 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
           continue;
         }
         
-        // Map to our data structure - now includes light2 and vent2
-        if (name === 'humidity1' || name === 'light1' || name === 'light2' || 
-            name === 'temp1' || name === 'vent1' || name === 'vent2') {
-          plcData[name as keyof PLCData] = value;
+        // Map to our data structure with exact PLC variable names
+        if (name === 'light1') {
+          plcData.light1 = value;
+          foundVariables.push('light1');
+        } else if (name === 'light2') {
+          plcData.light2 = value;
+          foundVariables.push('light2');
+        } else if (name === 'Vent1') {
+          plcData.vent1 = value;
+          foundVariables.push('vent1');
+        } else if (name === 'Vent2') {
+          plcData.vent2 = value;
+          foundVariables.push('vent2');
+        } else if (name === 'temp1') {
+          plcData.temp1 = value;
+          foundVariables.push('temp1');
+        } else if (name === 'humidity1') {
+          plcData.humidity1 = value;
+          foundVariables.push('humidity1');
         }
       }
       
-      // Only return data if we have all required fields from CSV
-      if (plcData.humidity1 !== undefined && plcData.light1 !== undefined && 
-          plcData.light2 !== undefined && plcData.temp1 !== undefined && 
-          plcData.vent1 !== undefined && plcData.vent2 !== undefined) {
+      console.log('Found variables:', foundVariables);
+      console.log('Parsed PLC data:', plcData);
+      
+      // Check if we have all required fields
+      const requiredFields = ['light1', 'light2', 'vent1', 'vent2', 'temp1', 'humidity1'];
+      const missingFields = requiredFields.filter(field => plcData[field as keyof PLCData] === undefined);
+      
+      if (missingFields.length === 0) {
         const result: PLCData = {
-          humidity1: plcData.humidity1,
-          light1: plcData.light1,
-          light2: plcData.light2,
-          temp1: plcData.temp1,
-          vent1: plcData.vent1,
-          vent2: plcData.vent2,
+          light1: plcData.light1!,
+          light2: plcData.light2!,
+          vent1: plcData.vent1!,
+          vent2: plcData.vent2!,
+          temp1: plcData.temp1!,
+          humidity1: plcData.humidity1!,
         };
         
         console.log('✓ PLC data parsed successfully:', result);
         setConnectionStatus('connected');
         return result;
+      } else {
+        console.warn('Missing required PLC variables:', missingFields);
+        console.warn('Available data:', plcData);
+        setConnectionStatus('error');
+        return null;
       }
-      
-      console.warn('Missing required PLC variables in response');
-      setConnectionStatus('error');
-      return null;
       
     } catch (error: any) {
       if (error.name === 'AbortError') {
@@ -153,17 +182,25 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
       throw new Error('No controller IP configured');
     }
 
-    const validVariables = ['light1', 'light2', 'vent1', 'vent2'];
-    if (!validVariables.includes(name)) {
-      throw new Error(`Invalid variable name: ${name}. Valid names: ${validVariables.join(', ')}`);
+    // Map our internal names to PLC variable names
+    const plcVariableMap: { [key: string]: string } = {
+      'light1': 'light1',
+      'light2': 'light2', 
+      'vent1': 'Vent1',
+      'vent2': 'Vent2'
+    };
+
+    const plcVariableName = plcVariableMap[name];
+    if (!plcVariableName) {
+      throw new Error(`Invalid variable name: ${name}. Valid names: ${Object.keys(plcVariableMap).join(', ')}`);
     }
 
     try {
-      console.log(`Writing ${name}=${value} to PLC...`);
+      console.log(`Writing ${plcVariableName}=${value} to PLC...`);
       
       // Create form data similar to your PHP implementation
       const formData = new URLSearchParams();
-      formData.append(name, value.toString());
+      formData.append(plcVariableName, value.toString());
 
       const response = await fetch(setUrl, {
         method: 'POST',
@@ -180,7 +217,7 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
       }
 
       const responseText = await response.text();
-      console.log(`✔ Wrote ${value} to ${name}. PLC response:`, responseText.trim());
+      console.log(`✔ Wrote ${value} to ${plcVariableName}. PLC response:`, responseText.trim());
       
       // Refresh data after write
       setTimeout(() => {
@@ -188,7 +225,7 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
       }, 100);
       
     } catch (error) {
-      console.error(`Error writing ${name}=${value}:`, error);
+      console.error(`Error writing ${plcVariableName}=${value}:`, error);
       throw error;
     }
   }, [controllerIp, setUrl]);
