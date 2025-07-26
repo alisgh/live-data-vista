@@ -25,29 +25,33 @@ const Index = () => {
   // Calculate grow days
   const growDays = Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 
-  const handleToggleControl = async (control: 'light1' | 'light2' | 'vent1' | 'vent2', currentValue: number) => {
-    const newValue = currentValue === 1 ? 0 : 1;
-    
-    try {
-      await writeVariable(control, newValue);
-      
-      toast({
-        title: "Control Command Sent",
-        description: `${control.toUpperCase()} → ${newValue === 1 ? 'ON' : 'OFF'}`,
-        duration: 3000,
-      });
-      
-      console.log(`Toggling ${control}: ${currentValue} → ${newValue}`);
-    } catch (error) {
-      toast({
-        title: "Control Error",
-        description: `Failed to toggle ${control}: ${error}`,
-        variant: "destructive",
-        duration: 5000,
-      });
-      console.error(`Error toggling ${control}:`, error);
-    }
-  };
+const handleToggleControl = async (
+  control: 'halogenLight',
+  currentValue: number
+) => {
+  const newValue = currentValue === 1 ? 0 : 1;
+
+  try {
+    await writeVariable(control, newValue);
+
+    toast({
+      title: "Control Command Sent",
+      description: `${control} → ${newValue === 1 ? 'ON' : 'OFF'}`,
+      duration: 3000,
+    });
+
+    console.log(`Toggling ${control}: ${currentValue} → ${newValue}`);
+  } catch (error) {
+    toast({
+      title: "Control Error",
+      description: `Failed to toggle ${control}: ${error}`,
+      variant: "destructive",
+      duration: 5000,
+    });
+    console.error(`Error toggling ${control}:`, error);
+  }
+};
+
 
   const handlePlantNameChange = (newName: string) => {
     setPlantName(newName);
