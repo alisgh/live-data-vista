@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 
 const Index = () => {
-  const [controllerIp, setControllerIp] = useState('192.168.0.213');
+  const [controllerIp, setControllerIp] = useState('192.168.0.236');
   const { data, connectionStatus, writeVariable, refreshData, isLoading } = usePLCDirect(controllerIp);
   const { toast } = useToast();
   
@@ -108,20 +108,6 @@ const Index = () => {
 
       {/* Main Dashboard */}
       <main className="container mx-auto px-4 lg:px-6 py-6 space-y-8">
-        {/* PLC Configuration Section */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-1 h-8 bg-orange-400 rounded-full"></div>
-            <h2 className="text-xl font-semibold text-gray-200">PLC Configuration</h2>
-          </div>
-          <PLCConfig
-            currentIp={controllerIp}
-            onIpChange={handleIpChange}
-            connectionStatus={connectionStatus}
-            onTestConnection={handleTestConnection}
-          />
-        </section>
-
         {/* Plant Overview Section */}
         <section className="space-y-6">
           <div className="flex items-center gap-3 mb-4">

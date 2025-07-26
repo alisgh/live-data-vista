@@ -1,39 +1,50 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface PLCData {
-  light1: number;
-  light2: number;
-  vent1: number;
-  vent2: number;
-  temp1?: number;
-  humidity1?: number;
+  halogenLight: number;    // b_Halogene (BOOL)
+  haloTemp: number;        // r_Halo_Temp (REAL)
+  ambientTemp: number;     // r_Temperatur (REAL)
 }
+
+type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
 interface UsePLCDirectReturn {
   data: PLCData | null;
-  connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error';
-  writeVariable: (name: string, value: number) => Promise<void>;
+  connectionStatus: ConnectionStatus;
+  writeVariable: (name: keyof PLCData, value: number) => Promise<void>;
   refreshData: () => void;
   isLoading: boolean;
 }
 
-export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
+export const usePLCDirect = (_controllerIp: string): UsePLCDirectReturn => {
   const [data, setData] = useState<PLCData | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected');
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [isLoading, setIsLoading] = useState(false);
   const pollIntervalRef = useRef<NodeJS.Timeout>();
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Direct URLs - proxy will handle the routing
-  const getUrl = `/getvar.csv`;
-  const setUrl = `/setvar.csv`;
+  // ⚠️ Use relative URLs so Vite proxy handles CORS
+  const getUrl = '/getvar.csv';
+  const setUrl = '/setvar.csv';
 
-  // Parse CSV data
+  // PLC → Internal mapping
+  const plcToInternalMap: Record<string, keyof PLCData> = {
+    'b_Halogene': 'halogenLight',
+    'r_Halo_Temp': 'haloTemp',
+    'r_Temperatur': 'ambientTemp',
+  };
+
+  const internalToPlcMap: Record<keyof PLCData, string> = {
+    halogenLight: 'b_Halogene',
+    haloTemp: 'r_Halo_Temp',
+    ambientTemp: 'r_Temperatur',
+  };
+
   const parseCsvLine = (line: string): string[] => {
-    const result = [];
+    const result: string[] = [];
     let current = '';
     let inQuotes = false;
-    
+
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
       if (char === '"') {
@@ -45,15 +56,12 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
         current += char;
       }
     }
+
     result.push(current.replace(/"/g, ''));
     return result;
   };
 
-  // Fetch data from PLC
   const fetchPLCData = useCallback(async (): Promise<PLCData | null> => {
-    if (!controllerIp) return null;
-
-    // Cancel previous request if still pending
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -62,8 +70,6 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
 
     try {
       setIsLoading(true);
-      console.log(`Attempting to fetch PLC data from: ${getUrl}`);
-      
       const response = await fetch(getUrl, {
         signal: abortControllerRef.current.signal,
         headers: {
@@ -71,142 +77,88 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
           'Pragma': 'no-cache'
         }
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const csvText = await response.text();
-      console.log('PLC response received, length:', csvText.length);
-      
-      const lines = csvText.trim().split('\n');
-      console.log('CSV lines count:', lines.length);
-      
-      // Skip header row
-      const dataLines = lines.slice(1);
-      
+      const lines = csvText.trim().split('\n').slice(1); // skip header
+
       const plcData: Partial<PLCData> = {};
-      const foundVariables: string[] = [];
-      
-      for (const line of dataLines) {
+
+      for (const line of lines) {
         const row = parseCsvLine(line);
         if (row.length < 6) continue;
-        
+
         const name = row[0];
-        const dataType = row[3];
+        const type = row[3];
         const valueStr = row[5];
-        
-        // Log all variable names for debugging
-        if (name && (name.toLowerCase().includes('light') || name.toLowerCase().includes('vent') || 
-                     name.toLowerCase().includes('temp') || name.toLowerCase().includes('humid'))) {
-          console.log(`Found potential variable: "${name}" = "${valueStr}" (type: ${dataType})`);
-        }
-        
+
+        const internalName = plcToInternalMap[name];
+        if (!internalName) continue;
+
         let value: number;
-        if (dataType.includes('REAL')) {
+
+        if (type === 'BOOL') {
+          value = valueStr.trim() === '1' ? 1 : 0;
+        } else if (type === 'REAL') {
           value = parseFloat(valueStr);
-        } else if (dataType.includes('BOOL')) {
-          value = parseInt(valueStr, 10);
         } else {
           continue;
         }
-        
-        // Map to our data structure with exact PLC variable names
-        if (name === 'light1') {
-          plcData.light1 = value;
-          foundVariables.push('light1');
-        } else if (name === 'light2') {
-          plcData.light2 = value;
-          foundVariables.push('light2');
-        } else if (name === 'Vent1') {
-          plcData.vent1 = value;
-          foundVariables.push('vent1');
-        } else if (name === 'Vent2') {
-          plcData.vent2 = value;
-          foundVariables.push('vent2');
-        } else if (name === 'temp1') {
-          plcData.temp1 = value;
-          foundVariables.push('temp1');
-        } else if (name === 'humidity1') {
-          plcData.humidity1 = value;
-          foundVariables.push('humidity1');
-        }
+
+        plcData[internalName] = value;
       }
-      
-      console.log('Found variables:', foundVariables);
-      console.log('Parsed PLC data:', plcData);
-      
-      // Check if we have all required fields (temp1 and humidity1 are now optional)
-      const requiredFields = ['light1', 'light2', 'vent1', 'vent2'];
-      const missingFields = requiredFields.filter(field => plcData[field as keyof PLCData] === undefined);
-      
-      if (missingFields.length === 0) {
-        const result: PLCData = {
-          light1: plcData.light1!,
-          light2: plcData.light2!,
-          vent1: plcData.vent1!,
-          vent2: plcData.vent2!,
-          ...(plcData.temp1 !== undefined && { temp1: plcData.temp1 }),
-          ...(plcData.humidity1 !== undefined && { humidity1: plcData.humidity1 }),
+
+      if (
+        plcData.halogenLight !== undefined &&
+        plcData.haloTemp !== undefined &&
+        plcData.ambientTemp !== undefined
+      ) {
+        const finalData: PLCData = {
+          halogenLight: plcData.halogenLight,
+          haloTemp: plcData.haloTemp,
+          ambientTemp: plcData.ambientTemp,
         };
-        
-        console.log('✓ PLC data parsed successfully:', result);
         setConnectionStatus('connected');
-        return result;
+        return finalData;
       } else {
-        console.warn('Missing required PLC variables:', missingFields);
-        console.warn('Available data:', plcData);
+        console.warn('Missing PLC variables:', plcData);
         setConnectionStatus('error');
         return null;
       }
-      
     } catch (error: any) {
       if (error.name === 'AbortError') {
-        console.log('PLC request aborted');
+        console.log('Request aborted');
         return null;
       }
-      
-      console.error('Error fetching PLC data:', error);
+
+      console.error('Fetch error:', error);
       setConnectionStatus('error');
       return null;
     } finally {
       setIsLoading(false);
       abortControllerRef.current = null;
     }
-  }, [controllerIp, getUrl]);
+  }, [getUrl]);
 
-  // Write variable to PLC - matching your PHP implementation
-  const writeVariable = useCallback(async (name: string, value: number): Promise<void> => {
-    if (!controllerIp) {
-      throw new Error('No controller IP configured');
-    }
-
-    // Map our internal names to PLC variable names
-    const plcVariableMap: { [key: string]: string } = {
-      'light1': 'light1',
-      'light2': 'light2', 
-      'vent1': 'Vent1',
-      'vent2': 'Vent2'
-    };
-
-    const plcVariableName = plcVariableMap[name];
-    if (!plcVariableName) {
-      throw new Error(`Invalid variable name: ${name}. Valid names: ${Object.keys(plcVariableMap).join(', ')}`);
+  const writeVariable = useCallback(async (name: keyof PLCData, value: number): Promise<void> => {
+    const plcName = internalToPlcMap[name];
+    if (!plcName) {
+      throw new Error(`Invalid variable name: ${name}`);
     }
 
     try {
-      console.log(`Writing ${plcVariableName}=${value} to PLC...`);
-      
-      // Create form data similar to your PHP implementation
       const formData = new URLSearchParams();
-      formData.append(plcVariableName, value.toString());
+      formData.append(plcName, value.toString());
 
       const response = await fetch(setUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
+          'Pragma': 'no-cache',
         },
         body: formData.toString(),
       });
@@ -215,58 +167,34 @@ export const usePLCDirect = (controllerIp: string): UsePLCDirectReturn => {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const responseText = await response.text();
-      console.log(`✔ Wrote ${value} to ${plcVariableName}. PLC response:`, responseText.trim());
-      
-      // Refresh data after write
-      setTimeout(() => {
-        refreshData();
-      }, 100);
-      
+      console.log(`✔ ${name}=${value} written successfully`);
+
+      // Delay slightly to allow PLC to update
+      setTimeout(() => refreshData(), 150);
     } catch (error) {
-      console.error(`Error writing ${plcVariableName}=${value}:`, error);
+      console.error(`Failed to write ${name}:`, error);
       throw error;
     }
-  }, [controllerIp, setUrl]);
+  }, [setUrl]);
 
-  // Refresh data manually
   const refreshData = useCallback(async () => {
-    if (!controllerIp) return;
-    
     const newData = await fetchPLCData();
-    if (newData) {
-      setData(newData);
-    }
-  }, [fetchPLCData, controllerIp]);
+    if (newData) setData(newData);
+  }, [fetchPLCData]);
 
-  // Setup polling
   useEffect(() => {
-    if (!controllerIp) {
-      setConnectionStatus('disconnected');
-      setData(null);
-      return;
-    }
-
-    console.log(`Setting up PLC connection to: ${controllerIp}`);
     setConnectionStatus('connecting');
-    
-    // Initial fetch
     refreshData();
-    
-    // Setup polling interval (reduced frequency to avoid overwhelming the PLC)
+
     pollIntervalRef.current = setInterval(() => {
       refreshData();
-    }, 2000); // Increased from 1000ms to 2000ms
+    }, 2000);
 
     return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-  }, [controllerIp, refreshData]);
+  }, [refreshData]);
 
   return {
     data,
