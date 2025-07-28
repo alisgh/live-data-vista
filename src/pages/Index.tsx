@@ -15,9 +15,9 @@ import { Settings } from 'lucide-react';
 
 const Index = () => {
   const [controllerIp, setControllerIp] = useState('192.168.0.236');
-  const { data, connectionStatus, writeVariable, refreshData, isLoading } = usePLCDirect(controllerIp);
+  const { data, connectionStatus, writeVariable, refreshData, isLoading } = usePLCDirect();
   const { toast } = useToast();
-  
+
   // Plant info state
   const [plantName, setPlantName] = useState('Green Dream');
   const [startDate] = useState(new Date('2024-06-01'));
@@ -25,32 +25,32 @@ const Index = () => {
   // Calculate grow days
   const growDays = Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 
-const handleToggleControl = async (
-  control: 'halogenLight',
-  currentValue: number
-) => {
-  const newValue = currentValue === 1 ? 0 : 1;
+  const handleToggleControl = async (
+    control: 'halogenLight',
+    currentValue: number
+  ) => {
+    const newValue = currentValue === 1 ? 0 : 1;
 
-  try {
-    await writeVariable(control, newValue);
+    try {
+      await writeVariable(control, newValue);
 
-    toast({
-      title: "Control Command Sent",
-      description: `${control} → ${newValue === 1 ? 'ON' : 'OFF'}`,
-      duration: 3000,
-    });
+      toast({
+        title: "Control Command Sent",
+        description: `${control} → ${newValue === 1 ? 'ON' : 'OFF'}`,
+        duration: 3000,
+      });
 
-    console.log(`Toggling ${control}: ${currentValue} → ${newValue}`);
-  } catch (error) {
-    toast({
-      title: "Control Error",
-      description: `Failed to toggle ${control}: ${error}`,
-      variant: "destructive",
-      duration: 5000,
-    });
-    console.error(`Error toggling ${control}:`, error);
-  }
-};
+      console.log(`Toggling ${control}: ${currentValue} → ${newValue}`);
+    } catch (error) {
+      toast({
+        title: "Control Error",
+        description: `Failed to toggle ${control}: ${error}`,
+        variant: "destructive",
+        duration: 5000,
+      });
+      console.error(`Error toggling ${control}:`, error);
+    }
+  };
 
 
   const handlePlantNameChange = (newName: string) => {
@@ -150,7 +150,9 @@ const handleToggleControl = async (
               data={data}
               onToggleControl={handleToggleControl}
               connectionStatus={connectionStatus}
+              writeVariable={writeVariable}
             />
+
           </div>
         </section>
 
@@ -161,7 +163,7 @@ const handleToggleControl = async (
             <h2 className="text-xl font-semibold text-gray-200">System Health</h2>
           </div>
           <div className="transition-all duration-300 hover:scale-[1.01]">
-            <SystemStatus 
+            <SystemStatus
               connectionStatus={connectionStatus}
               lastUpdate={data ? new Date() : null}
             />
@@ -173,17 +175,17 @@ const handleToggleControl = async (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-400">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <strong className="text-green-400">PLC Controller:</strong> 
+              <strong className="text-green-400">PLC Controller:</strong>
               <span className="font-mono">{controllerIp}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
-              <strong className="text-green-400">Status:</strong> 
+              <strong className="text-green-400">Status:</strong>
               <span className="capitalize">{connectionStatus}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-              <strong className="text-green-400">Data:</strong> 
+              <strong className="text-green-400">Data:</strong>
               <span>{data ? `Live (Available)` : 'No Data'}</span>
             </div>
           </div>

@@ -2,8 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Lightbulb, Settings } from 'lucide-react';
-import { Button } from '@/components/ui/button'; 
-
+import { Button } from '@/components/ui/button';
 
 interface PLCData {
   halogenLight: number;
@@ -16,31 +15,27 @@ interface EnvironmentControlsProps {
   data: PLCData | null;
   onToggleControl: (control: 'halogenLight', currentValue: number) => void;
   connectionStatus: string;
+  writeVariable: (variable: string, value: number) => Promise<void>;
 }
-
-const triggerWaterValve = async () => {
-  try {
-    // Set b_water = 1
-    await writeVariable('b_water', 1);
-
-    // Wait 5 seconds
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-
-    // Set b_water = 0
-    await writeVariable('b_water', 0);
-  } catch (err) {
-    console.error('Failed to trigger water valve:', err);
-  }
-};
-
 
 const EnvironmentControls: React.FC<EnvironmentControlsProps> = ({
   data,
   onToggleControl,
-  connectionStatus
+  connectionStatus,
+  writeVariable
 }) => {
   const isConnected = connectionStatus === 'connected';
   const halogenValue = data?.halogenLight ?? 0;
+
+  const triggerWaterValve = async () => {
+    try {
+      await writeVariable('b_water', 1);
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      await writeVariable('b_water', 0);
+    } catch (err) {
+      console.error('Failed to trigger water valve:', err);
+    }
+  };
 
   const ControlCard = ({
     title,
@@ -78,8 +73,7 @@ const EnvironmentControls: React.FC<EnvironmentControlsProps> = ({
             disabled={!isConnected}
             className="data-[state=checked]:bg-green-600 transition-all duration-200 scale-125"
           />
-          <span className={`text-xs font-medium transition-colors duration-200 ${!isConnected ? 'text-gray-500' : value === 1 ? 'text-green-400' : 'text-gray-400'
-            }`}>
+          <span className={`text-xs font-medium ${!isConnected ? 'text-gray-500' : value === 1 ? 'text-green-400' : 'text-gray-400'}`}>
             {isConnected ? (value === 1 ? 'ON' : 'OFF') : 'OFFLINE'}
           </span>
         </div>
@@ -89,8 +83,7 @@ const EnvironmentControls: React.FC<EnvironmentControlsProps> = ({
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-400">Status:</span>
           <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full transition-all duration-300 ${value === 1 ? 'bg-green-400 animate-pulse' : 'bg-gray-500'
-              }`} />
+            <div className={`w-2 h-2 rounded-full transition-all duration-300 ${value === 1 ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`} />
             <span className={`font-medium ${value === 1 ? 'text-green-400' : 'text-gray-400'}`}>
               {description}
             </span>
@@ -130,7 +123,8 @@ const EnvironmentControls: React.FC<EnvironmentControlsProps> = ({
             description={halogenValue === 1 ? 'Active' : 'Standby'}
           />
         </div>
-        <div className="group p-6 bg-gray-700/30 rounded-xl border border-gray-600 transition-all duration-300 hover:bg-gray-700/50 hover:border-gray-500 hover:scale-[1.02] active:scale-[0.98]">
+
+        <div className="group p-6 mt-6 bg-gray-700/30 rounded-xl border border-gray-600 transition-all duration-300 hover:bg-gray-700/50 hover:border-gray-500 hover:scale-[1.02] active:scale-[0.98]">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <div className="p-3 rounded-xl bg-blue-500/20 text-blue-300 shadow-blue-300/20">
@@ -143,7 +137,6 @@ const EnvironmentControls: React.FC<EnvironmentControlsProps> = ({
             </div>
             <div className="flex flex-col items-end gap-2">
               <Button
-                size="sm"
                 onClick={triggerWaterValve}
                 disabled={!isConnected}
                 className="bg-blue-500/20 text-blue-300 hover:bg-blue-500/40 transition-all duration-200"
@@ -155,12 +148,10 @@ const EnvironmentControls: React.FC<EnvironmentControlsProps> = ({
               </span>
             </div>
           </div>
-
           <div className="text-sm text-gray-400">
-            Triggers a 5-second water pulse by writing `b_water = 1`, then resets it.
+            Triggers a 5-second water pulse by writing <code>b_water = 1</code>, then resets it.
           </div>
         </div>
-
 
         {!isConnected && (
           <div className="mt-8 p-6 bg-orange-900/20 border border-orange-600/30 rounded-xl backdrop-blur-sm animate-fade-in">
@@ -179,8 +170,7 @@ const EnvironmentControls: React.FC<EnvironmentControlsProps> = ({
         <div className="mt-6 pt-4 border-t border-gray-700">
           <div className="flex items-center justify-between text-xs text-gray-400">
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full transition-all duration-300 ${data ? 'bg-green-400 animate-pulse' : 'bg-gray-500'
-                }`} />
+              <div className={`w-2 h-2 rounded-full transition-all duration-300 ${data ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`} />
               <span>{data ? 'Real-time PLC data' : 'Demo mode'}</span>
             </div>
             <div className="flex gap-4">
@@ -194,7 +184,3 @@ const EnvironmentControls: React.FC<EnvironmentControlsProps> = ({
 };
 
 export default EnvironmentControls;
-function writeVariable(arg0: string, arg1: number) {
-  throw new Error('Function not implemented.');
-}
-
