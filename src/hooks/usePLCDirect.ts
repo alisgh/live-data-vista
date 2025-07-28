@@ -14,6 +14,7 @@ interface UsePLCDirectReturn {
   data: PLCData | null;
   connectionStatus: ConnectionStatus;
   writeVariable: (name: keyof PLCData, value: number) => Promise<void>;
+  triggerPulse: (name: keyof PLCData, durationMs: number) => Promise<void>;
   refreshData: () => void;
   isLoading: boolean;
 }
@@ -113,6 +114,11 @@ export const usePLCDirect = (): UsePLCDirectReturn => {
     setTimeout(() => refreshData(), 150);
   }, []);
 
+  const triggerPulse = useCallback(async (name: keyof PLCData, durationMs: number): Promise<void> => {
+    await writeVariable(name, 1);
+    setTimeout(() => writeVariable(name, 0), durationMs);
+  }, [writeVariable]);
+
   const refreshData = useCallback(async () => {
     const newData = await fetchPLCData();
     if (newData) setData(newData);
@@ -128,5 +134,5 @@ export const usePLCDirect = (): UsePLCDirectReturn => {
     };
   }, [refreshData]);
 
-  return { data, connectionStatus, writeVariable, refreshData, isLoading };
+  return { data, connectionStatus, writeVariable, triggerPulse, refreshData, isLoading };
 };
