@@ -21,25 +21,18 @@ interface EnvironmentControlsProps {
 const triggerWaterValve = async () => {
   try {
     // Set b_water = 1
-    await fetch('/api/WriteVariable', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ variable: 'b_water', value: 1 }),
-    });
+    await writeVariable('b_water', 1);
 
     // Wait 5 seconds
     await new Promise((resolve) => setTimeout(resolve, 5000));
 
     // Set b_water = 0
-    await fetch('/api/WriteVariable', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ variable: 'b_water', value: 0 }),
-    });
+    await writeVariable('b_water', 0);
   } catch (err) {
     console.error('Failed to trigger water valve:', err);
   }
 };
+
 
 const EnvironmentControls: React.FC<EnvironmentControlsProps> = ({
   data,
@@ -201,3 +194,7 @@ const EnvironmentControls: React.FC<EnvironmentControlsProps> = ({
 };
 
 export default EnvironmentControls;
+function writeVariable(arg0: string, arg1: number) {
+  throw new Error('Function not implemented.');
+}
+
