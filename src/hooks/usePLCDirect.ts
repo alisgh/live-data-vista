@@ -6,6 +6,7 @@ export interface PLCData {
   waterPump: number;    // b_water
   haloTemp: number;     // r_Halo_Temp
   ambientTemp: number;  // r_Temperatur
+  b_water: number;
 }
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';

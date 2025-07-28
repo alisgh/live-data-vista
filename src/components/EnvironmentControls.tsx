@@ -2,7 +2,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Lightbulb, Settings } from 'lucide-react';
-import { Button } from 'react-day-picker';
+import { Button } from '@/components/ui/button'; 
+
 
 interface PLCData {
   halogenLight: number;
@@ -16,6 +17,7 @@ interface EnvironmentControlsProps {
   onToggleControl: (control: 'halogenLight', currentValue: number) => void;
   connectionStatus: string;
 }
+
 const triggerWaterValve = async () => {
   try {
     // Set b_water = 1
