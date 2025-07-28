@@ -14,19 +14,7 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
   const [isOnline, setIsOnline] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const imgRef = useRef<HTMLImageElement>(null);
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (isVisible) {
-      refreshIntervalRef.current = setInterval(() => {
-        setRefreshKey(prev => prev + 1);  // Force re-render of image src
-      }, 10000);
-    }
-    return () => {
-      if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
-    };
-  }, [isVisible]);
+  const imgRef = useRef<HTMLImageElement>(null);;
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -114,7 +102,7 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
             <div className="aspect-video w-full bg-black rounded-xl overflow-hidden border border-gray-600">
               <img
                 ref={imgRef}
-                src={`${streamUrl}?key=${refreshKey}`}
+                src={`${streamUrl}stream`}
                 alt="Live grow cam feed"
                 className="w-full h-full object-cover"
                 onLoad={handleImageLoad}
