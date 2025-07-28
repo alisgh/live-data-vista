@@ -112,22 +112,22 @@ export const usePLCDirect = (): UsePLCDirectReturn => {
 
   const writeVariable = useCallback(async (name: keyof PLCData, value: number): Promise<void> => {
     const plcName = internalToPlcMap[name];
-    const body = new URLSearchParams();
-    body.append(plcName, value.toString());
+    const body = `${plcName};${value}`;
 
     try {
       await fetch(setUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString()
+        headers: { 'Content-Type': 'text/plain' },
+        body
       });
 
       // Refresh shortly after writing to get new value
       setTimeout(() => refreshData(), 150);
     } catch (error) {
-      console.error(`Failed to write ${plcName}:`, error);
+      console.error(`Failed to write ${plcName}:`, error);[]
     }
   }, [refreshData]);
+
 
   const triggerPulse = useCallback(async (name: keyof PLCData, durationMs: number): Promise<void> => {
     await writeVariable(name, 1);
