@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Eye, EyeOff, Camera } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,8 +7,8 @@ interface LiveGrowCamProps {
   streamUrl?: string;
 }
 
-const LiveGrowCam: React.FC<LiveGrowCamProps> = ({ 
-  streamUrl = 'http://192.168.0.229:8088/' 
+const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
+  streamUrl = 'http://192.168.0.229:8088/stream'
 }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [isOnline, setIsOnline] = useState(false);
@@ -18,60 +17,42 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
   const imgRef = useRef<HTMLImageElement>(null);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-refresh the stream every 10 seconds to prevent black screen
   useEffect(() => {
     if (isVisible) {
       refreshIntervalRef.current = setInterval(() => {
-        console.log('Auto-refreshing camera stream to prevent timeout');
-        setRefreshKey(prev => prev + 1);
-      }, 10000); // Refresh every 10 seconds
+        setRefreshKey(prev => prev + 1);  // Force re-render of image src
+      }, 10000);
     }
-
     return () => {
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-      }
+      if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
     };
   }, [isVisible]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    
     if (isVisible && isOnline) {
-      // Update the "last updated" timestamp every 2 seconds when visible and online
       interval = setInterval(() => {
         setLastUpdate(new Date());
       }, 2000);
-      
-      // Set initial timestamp
       setLastUpdate(new Date());
     }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [isVisible, isOnline]);
 
   const handleImageLoad = () => {
     setIsOnline(true);
-    console.log('Camera stream loaded successfully');
   };
 
   const handleImageError = () => {
     setIsOnline(false);
-    console.log('Camera stream failed to load, will retry in 10s');
-    // Try to refresh after a short delay
-    setTimeout(() => {
-      setRefreshKey(prev => prev + 1);
-    }, 3000);
+    setTimeout(() => setRefreshKey(prev => prev + 1), 3000);
   };
 
   const toggleVisibility = () => {
-    setIsVisible(!isVisible);
+    setIsVisible(prev => !prev);
   };
 
   const manualRefresh = () => {
-    console.log('Manual refresh triggered');
     setRefreshKey(prev => prev + 1);
   };
 
@@ -79,7 +60,7 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
     if (!isVisible) return 'Camera hidden';
     if (!isOnline) return 'Camera offline';
     if (lastUpdate) {
-      const secondsAgo = Math.floor((new Date().getTime() - lastUpdate.getTime()) / 1000);
+      const secondsAgo = Math.floor((Date.now() - lastUpdate.getTime()) / 1000);
       return `Live • ${secondsAgo}s ago`;
     }
     return 'Connecting...';
@@ -106,7 +87,7 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
               variant="ghost"
               size="sm"
               onClick={manualRefresh}
-              className="text-gray-400 hover:text-green-400 hover:bg-green-400/10 transition-all duration-200 active:scale-95"
+              className="text-gray-400 hover:text-green-400 hover:bg-green-400/10 active:scale-95"
               disabled={!isVisible}
             >
               <span className="text-lg">🔄</span>
@@ -115,51 +96,39 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
               variant="ghost"
               size="sm"
               onClick={toggleVisibility}
-              className="text-gray-400 hover:text-green-400 hover:bg-green-400/10 transition-all duration-200 active:scale-95"
+              className="text-gray-400 hover:text-green-400 hover:bg-green-400/10 active:scale-95"
             >
               {isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
             </Button>
           </div>
         </div>
-        <div className="flex items-center justify-between">
-          <div className={`flex items-center gap-3 text-sm ${getStatusColor()} transition-colors duration-300`}>
-            <div className={`w-3 h-3 rounded-full transition-all duration-300 ${
-              isOnline && isVisible ? 'bg-green-400 shadow-green-400/50 animate-pulse' : 'bg-gray-500'
-            }`}></div>
-            <span className="font-medium">{getStatusText()}</span>
-          </div>
+        <div className={`flex items-center gap-3 text-sm ${getStatusColor()}`}>
+          <div className={`w-3 h-3 rounded-full ${isOnline && isVisible ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`} />
+          <span>{getStatusText()}</span>
         </div>
       </CardHeader>
-      
+
       <CardContent className="pt-0">
         {isVisible ? (
           <div className="relative group">
-            <div className="aspect-video w-full bg-gray-900 rounded-xl overflow-hidden shadow-xl border border-gray-600 transition-all duration-300 group-hover:shadow-2xl group-hover:scale-[1.02]">
+            <div className="aspect-video w-full bg-black rounded-xl overflow-hidden border border-gray-600">
               <img
                 ref={imgRef}
-                src={`${streamUrl}?t=${refreshKey}`}
+                src={`${streamUrl}?key=${refreshKey}`}
                 alt="Live grow cam feed"
-                className="w-full h-full object-cover transition-all duration-300"
+                className="w-full h-full object-cover"
                 onLoad={handleImageLoad}
                 onError={handleImageError}
               />
               {!isOnline && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 backdrop-blur-sm">
-                  <div className="text-center space-y-4 animate-fade-in">
-                    <div className="p-4 bg-gray-800/50 rounded-full">
-                      <Camera className="h-12 w-12 text-gray-500 mx-auto" />
-                    </div>
-                    <div>
-                      <p className="text-gray-400 text-sm font-medium">Camera offline</p>
-                      <p className="text-gray-500 text-xs mt-1">Check connection to {streamUrl}</p>
-                    </div>
+                <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+                  <div className="text-center space-y-4">
+                    <Camera className="w-12 h-12 text-gray-500 mx-auto" />
+                    <p className="text-gray-400">Camera offline</p>
+                    <p className="text-gray-600 text-sm">{streamUrl}</p>
                     <div className="flex gap-1 justify-center">
-                      {[...Array(3)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="w-2 h-2 bg-gray-600 rounded-full animate-pulse"
-                          style={{ animationDelay: `${i * 0.2}s` }}
-                        />
+                      {[0, 1, 2].map(i => (
+                        <div key={i} className="w-2 h-2 rounded-full bg-gray-500 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
                       ))}
                     </div>
                   </div>
@@ -168,16 +137,9 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
             </div>
           </div>
         ) : (
-          <div className="aspect-video w-full bg-gray-900/30 rounded-xl border-2 border-dashed border-gray-600 flex items-center justify-center transition-all duration-300 hover:bg-gray-900/40">
-            <div className="text-center space-y-4 animate-fade-in">
-              <div className="p-4 bg-gray-800/30 rounded-full">
-                <EyeOff className="h-12 w-12 text-gray-500 mx-auto" />
-              </div>
-              <div>
-                <p className="text-gray-400 text-sm font-medium">Camera hidden</p>
-                <p className="text-gray-500 text-xs mt-1">Click the eye icon to show</p>
-              </div>
-            </div>
+          <div className="aspect-video w-full bg-gray-900/30 border-2 border-dashed border-gray-600 rounded-xl flex flex-col items-center justify-center">
+            <EyeOff className="w-10 h-10 text-gray-500" />
+            <p className="text-gray-400 text-sm mt-2">Camera hidden</p>
           </div>
         )}
       </CardContent>
