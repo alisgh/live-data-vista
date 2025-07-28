@@ -29,7 +29,6 @@ export const usePLCDirect = (): UsePLCDirectReturn => {
   const getUrl = '/getvar.csv';
   const setUrl = '/setvar.csv';
 
-  // Map PLC variable names to internal state keys
   const plcToInternalMap: Record<string, keyof PLCData> = {
     'b_Halogene': 'halogenLight',
     'b_water': 'b_water',
@@ -37,11 +36,12 @@ export const usePLCDirect = (): UsePLCDirectReturn => {
     'r_Temperatur': 'ambientTemp',
   };
 
+  // Updated mapping to use numeric IDs (as expected by your PLC)
   const internalToPlcMap: Record<keyof PLCData, string> = {
-    halogenLight: 'b_Halogene',
-    b_water: 'b_water',
-    haloTemp: 'r_Halo_Temp',
-    ambientTemp: 'r_Temperatur',
+    halogenLight: '693',     // ID for b_Halogene
+    b_water: '694',          // ID for b_water
+    haloTemp: '697',         // ID for r_Halo_Temp
+    ambientTemp: '698',      // ID for r_Temperatur
   };
 
   const parseCsvLine = (line: string): string[] => {
@@ -111,23 +111,20 @@ export const usePLCDirect = (): UsePLCDirectReturn => {
   }, [fetchPLCData]);
 
   const writeVariable = useCallback(async (name: keyof PLCData, value: number): Promise<void> => {
-    const plcName = internalToPlcMap[name];
-    const body = `${plcName};${value}`;
+    const id = internalToPlcMap[name];
+    const body = `${id}=${value}`; // Matches your working PHP format
 
     try {
       await fetch(setUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body
       });
-
-      // Refresh shortly after writing to get new value
       setTimeout(() => refreshData(), 150);
     } catch (error) {
-      console.error(`Failed to write ${plcName}:`, error);[]
+      console.error(`Failed to write ${name}:`, error);
     }
   }, [refreshData]);
-
 
   const triggerPulse = useCallback(async (name: keyof PLCData, durationMs: number): Promise<void> => {
     await writeVariable(name, 1);
@@ -138,7 +135,6 @@ export const usePLCDirect = (): UsePLCDirectReturn => {
     setConnectionStatus('connecting');
     refreshData();
     pollIntervalRef.current = setInterval(() => refreshData(), 2000);
-
     return () => {
       clearInterval(pollIntervalRef.current);
       abortControllerRef.current?.abort();
@@ -151,6 +147,6 @@ export const usePLCDirect = (): UsePLCDirectReturn => {
     writeVariable,
     triggerPulse,
     refreshData,
-    isLoading
+    isLoading,
   };
 };
