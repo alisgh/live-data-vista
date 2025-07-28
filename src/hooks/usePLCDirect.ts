@@ -1,12 +1,10 @@
-// ✅ usePLCDirect.ts - only fetch the 4 required variables
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 export interface PLCData {
-  halogenLight: number; // b_Halogene
-  waterPump: number;    // b_water
-  haloTemp: number;     // r_Halo_Temp
-  ambientTemp: number;  // r_Temperatur
-  b_water: number;
+  halogenLight: number;  // b_Halogene
+  b_water: number;       // b_water
+  haloTemp: number;      // r_Halo_Temp
+  ambientTemp: number;   // r_Temperatur
 }
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
@@ -24,22 +22,24 @@ export const usePLCDirect = (): UsePLCDirectReturn => {
   const [data, setData] = useState<PLCData | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [isLoading, setIsLoading] = useState(false);
+
   const pollIntervalRef = useRef<NodeJS.Timeout>();
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const getUrl = '/getvar.csv';
   const setUrl = '/setvar.csv';
 
+  // Map PLC variable names to internal state keys
   const plcToInternalMap: Record<string, keyof PLCData> = {
     'b_Halogene': 'halogenLight',
-    'b_water': 'waterPump',
+    'b_water': 'b_water',
     'r_Halo_Temp': 'haloTemp',
     'r_Temperatur': 'ambientTemp',
   };
 
   const internalToPlcMap: Record<keyof PLCData, string> = {
     halogenLight: 'b_Halogene',
-    waterPump: 'b_water',
+    b_water: 'b_water',
     haloTemp: 'r_Halo_Temp',
     ambientTemp: 'r_Temperatur',
   };
@@ -75,15 +75,17 @@ export const usePLCDirect = (): UsePLCDirectReturn => {
       for (const line of lines) {
         const row = parseCsvLine(line);
         if (row.length < 6) continue;
+
         const [name, , , type, , valueStr] = row;
         const key = plcToInternalMap[name];
         if (!key) continue;
+
         plcData[key] = type === 'REAL' ? parseFloat(valueStr) : parseInt(valueStr, 10);
       }
 
       if (
         plcData.halogenLight !== undefined &&
-        plcData.waterPump !== undefined &&
+        plcData.b_water !== undefined &&
         plcData.haloTemp !== undefined &&
         plcData.ambientTemp !== undefined
       ) {
@@ -93,7 +95,7 @@ export const usePLCDirect = (): UsePLCDirectReturn => {
         setConnectionStatus('error');
         return null;
       }
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'AbortError') return null;
       setConnectionStatus('error');
       return null;
@@ -103,37 +105,52 @@ export const usePLCDirect = (): UsePLCDirectReturn => {
     }
   }, []);
 
+  const refreshData = useCallback(async () => {
+    const newData = await fetchPLCData();
+    if (newData) setData(newData);
+  }, [fetchPLCData]);
+
   const writeVariable = useCallback(async (name: keyof PLCData, value: number): Promise<void> => {
     const plcName = internalToPlcMap[name];
     const body = new URLSearchParams();
     body.append(plcName, value.toString());
-    await fetch(setUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString()
-    });
-    setTimeout(() => refreshData(), 150);
-  }, []);
+
+    try {
+      await fetch(setUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString()
+      });
+
+      // Refresh shortly after writing to get new value
+      setTimeout(() => refreshData(), 150);
+    } catch (error) {
+      console.error(`Failed to write ${plcName}:`, error);
+    }
+  }, [refreshData]);
 
   const triggerPulse = useCallback(async (name: keyof PLCData, durationMs: number): Promise<void> => {
     await writeVariable(name, 1);
     setTimeout(() => writeVariable(name, 0), durationMs);
   }, [writeVariable]);
 
-  const refreshData = useCallback(async () => {
-    const newData = await fetchPLCData();
-    if (newData) setData(newData);
-  }, [fetchPLCData]);
-
   useEffect(() => {
     setConnectionStatus('connecting');
     refreshData();
     pollIntervalRef.current = setInterval(() => refreshData(), 2000);
+
     return () => {
       clearInterval(pollIntervalRef.current);
       abortControllerRef.current?.abort();
     };
   }, [refreshData]);
 
-  return { data, connectionStatus, writeVariable, triggerPulse, refreshData, isLoading };
+  return {
+    data,
+    connectionStatus,
+    writeVariable,
+    triggerPulse,
+    refreshData,
+    isLoading
+  };
 };
