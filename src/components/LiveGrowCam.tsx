@@ -8,7 +8,7 @@ interface LiveGrowCamProps {
 }
 
 const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
-  streamUrl = 'http://192.168.0.158:8088/'
+  streamUrl = 'http://localhost:8088/'
 }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [isOnline, setIsOnline] = useState(false);
