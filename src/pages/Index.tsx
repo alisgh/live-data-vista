@@ -3,81 +3,29 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePLCDirect } from '@/hooks/usePLCDirect';
 import ConnectionStatus from '@/components/ConnectionStatus';
-import GrowStats from '@/components/GrowStats';
-import EnvironmentControls from '@/components/EnvironmentControls';
-import SystemStatus from '@/components/SystemStatus';
-import PlantInfo from '@/components/PlantInfo';
 import LiveGrowCam from '@/components/LiveGrowCam';
-import PLCConfig from '@/components/PLCConfig';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 
 const Index = () => {
-  const [controllerIp, setControllerIp] = useState('192.168.0.236');
-  const { data, connectionStatus, writeVariable, refreshData, isLoading } = usePLCDirect();
+  const [controllerIp, setControllerIp] = useState('192.168.100.70');
+  const { data, connectionStatus, writeVariable, refreshData, isLoading, triggerPulse } = usePLCDirect();
   const { toast } = useToast();
 
-  // Plant info state
-  const [plantName, setPlantName] = useState('Green Dream');
-  const [startDate] = useState(new Date('2024-06-01'));
-
-  // Calculate grow days
-  const growDays = Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-
-  const handleToggleControl = async (
-    control: 'halogenLight',
-    currentValue: number
-  ) => {
-    const newValue = currentValue === 1 ? 0 : 1;
-
+  const handleWater = async () => {
     try {
-      await writeVariable(control, newValue);
-
+      await triggerPulse('b_water', 5000);
       toast({
-        title: "Control Command Sent",
-        description: `${control} → ${newValue === 1 ? 'ON' : 'OFF'}`,
+        title: 'Water Pulse Sent',
+        description: 'Opened water valve for 5 seconds',
         duration: 3000,
       });
-
-      console.log(`Toggling ${control}: ${currentValue} → ${newValue}`);
-    } catch (error) {
-      toast({
-        title: "Control Error",
-        description: `Failed to toggle ${control}: ${error}`,
-        variant: "destructive",
-        duration: 5000,
-      });
-      console.error(`Error toggling ${control}:`, error);
+      console.log('Water pulse triggered for 5s');
+    } catch (err) {
+      toast({ title: 'Water Error', description: String(err), variant: 'destructive', duration: 5000 });
+      console.error('Failed to trigger water valve:', err);
     }
-  };
-
-
-  const handlePlantNameChange = (newName: string) => {
-    setPlantName(newName);
-    toast({
-      title: "Plant Info Updated",
-      description: `Plant name changed to "${newName}"`,
-      duration: 2000,
-    });
-  };
-
-  const handleIpChange = (newIp: string) => {
-    setControllerIp(newIp);
-    toast({
-      title: "IP Address Updated",
-      description: `Controller IP set to ${newIp}. Note: You may need to restart the dev server for proxy changes to take effect.`,
-      duration: 5000,
-    });
-  };
-
-  const handleTestConnection = () => {
-    refreshData();
-    toast({
-      title: "Testing Connection",
-      description: "Attempting to connect to PLC...",
-      duration: 2000,
-    });
   };
 
   const reconnect = () => {
@@ -87,109 +35,61 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-gray-700 bg-gray-800/80 backdrop-blur-md transition-all duration-300">
-        <div className="container mx-auto px-4 lg:px-6 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="text-3xl">🌿</div>
-              <div>
-                <h1 className="text-2xl font-bold text-green-400 tracking-tight">BudBox</h1>
-                <p className="text-gray-400 text-sm">Smart grow box dashboard</p>
-              </div>
+      <header className="sticky top-0 z-50 border-b border-gray-700 bg-gray-800/80 backdrop-blur-md">
+        <div className="container mx-auto px-4 lg:px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="text-3xl">🌿</div>
+            <div>
+              <h1 className="text-2xl font-bold text-green-400 tracking-tight">BudBox</h1>
+              <p className="text-gray-400 text-sm">Water & Camera</p>
             </div>
-            <div className="flex items-center gap-4">
-              <Link to="/plc-config">
-                <Button variant="outline" className="border-purple-600 text-purple-400 hover:bg-purple-600/20">
-                  <Settings className="h-4 w-4 mr-2" />
-                  PLC Variables
-                </Button>
-              </Link>
-              <ConnectionStatus status={connectionStatus} onReconnect={reconnect} />
-            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link to="/plc-config">
+              <Button variant="outline" className="border-purple-600 text-purple-400 hover:bg-purple-600/20">
+                <Settings className="h-4 w-4 mr-2" />
+                PLC Variables
+              </Button>
+            </Link>
+            <ConnectionStatus status={connectionStatus} onReconnect={reconnect} />
           </div>
         </div>
       </header>
 
-      {/* Main Dashboard */}
-      <main className="container mx-auto px-4 lg:px-6 py-6 space-y-8">
-        {/* Plant Overview Section */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-1 h-8 bg-green-400 rounded-full"></div>
-            <h2 className="text-xl font-semibold text-gray-200">Plant Overview</h2>
-          </div>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <div className="transition-all duration-300 hover:scale-[1.02]">
-              <PlantInfo />
-            </div>
-            <div className="transition-all duration-300 hover:scale-[1.02]">
-              <GrowStats data={data} />
+      {/* Main - only webcam + water control */}
+      <main className="container mx-auto px-4 lg:px-6 py-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2 transition-all duration-300 hover:scale-[1.01]">
+            <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
+              <h2 className="text-lg font-semibold text-gray-200 mb-4">Live Camera</h2>
+              <LiveGrowCam />
             </div>
           </div>
-        </section>
 
-        {/* Live Monitoring Section */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-1 h-8 bg-blue-400 rounded-full"></div>
-            <h2 className="text-xl font-semibold text-gray-200">Live Monitoring</h2>
-          </div>
           <div className="transition-all duration-300 hover:scale-[1.01]">
-            <LiveGrowCam />
-          </div>
-        </section>
+            <div className="p-6 bg-gray-700/30 rounded-xl border border-gray-600">
+              <h3 className="text-lg font-semibold text-gray-200 mb-4">Water Control</h3>
+              <p className="text-sm text-gray-400 mb-4">Trigger a 5-second water pulse to water the plant.</p>
+              <div className="flex flex-col gap-3">
+                <Button onClick={handleWater} className="bg-blue-500 text-white hover:bg-blue-600" disabled={connectionStatus !== 'connected'}>
+                  Open 5s
+                </Button>
+                <Button variant="outline" onClick={() => writeVariable('b_water', 1)} disabled={connectionStatus !== 'connected'}>
+                  Open (Manual Write 1)
+                </Button>
+                <Button variant="ghost" onClick={() => writeVariable('b_water', 0)} disabled={connectionStatus !== 'connected'}>
+                  Close (Manual Write 0)
+                </Button>
+              </div>
 
-        {/* Controls Section */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-1 h-8 bg-yellow-400 rounded-full"></div>
-            <h2 className="text-xl font-semibold text-gray-200">Environment Controls</h2>
-          </div>
-          <div className="transition-all duration-300 hover:scale-[1.01]">
-            <EnvironmentControls
-              data={data}
-              onToggleControl={handleToggleControl}
-              connectionStatus={connectionStatus}
-              writeVariable={writeVariable}
-            />
-
-          </div>
-        </section>
-
-        {/* System Health Section */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-1 h-8 bg-purple-400 rounded-full"></div>
-            <h2 className="text-xl font-semibold text-gray-200">System Health</h2>
-          </div>
-          <div className="transition-all duration-300 hover:scale-[1.01]">
-            <SystemStatus
-              connectionStatus={connectionStatus}
-              lastUpdate={data ? new Date() : null}
-            />
-          </div>
-        </section>
-
-        {/* Footer Info */}
-        <footer className="mt-12 p-6 bg-gray-800/30 border border-gray-700 rounded-xl backdrop-blur-sm">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-400">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <strong className="text-green-400">PLC Controller:</strong>
-              <span className="font-mono">{controllerIp}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
-              <strong className="text-green-400">Status:</strong>
-              <span className="capitalize">{connectionStatus}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-              <strong className="text-green-400">Data:</strong>
-              <span>{data ? `Live (Available)` : 'No Data'}</span>
+              <div className="mt-4 text-xs text-gray-400">
+                <div>PLC: <span className="font-mono">{controllerIp}</span></div>
+                <div>Status: <span className="capitalize">{connectionStatus}</span></div>
+                <div>Data: {data ? 'Live (Available)' : 'No Data'}</div>
+              </div>
             </div>
           </div>
-        </footer>
+        </div>
       </main>
     </div>
   );
