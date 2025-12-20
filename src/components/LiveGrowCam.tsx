@@ -8,13 +8,13 @@ interface LiveGrowCamProps {
 }
 
 const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
-  streamUrl = 'http://192.168.0.163:8088/stream'
+  streamUrl = 'http://192.168.0.158:8088/'
 }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [isOnline, setIsOnline] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const imgRef = useRef<HTMLImageElement>(null);;
+  const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
