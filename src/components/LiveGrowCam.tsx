@@ -14,25 +14,28 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
   const [isOnline, setIsOnline] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const imgRef = useRef<HTMLImageElement>(null);
 
+  // Auto-refresh every 2 seconds when visible
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isVisible && isOnline) {
-      interval = setInterval(() => {
-        setLastUpdate(new Date());
-      }, 2000);
-      setLastUpdate(new Date());
-    }
+    if (!isVisible) return;
+    const interval = setInterval(() => {
+      setRefreshKey(prev => prev + 1);
+      setIsLoading(true);
+    }, 2000);
     return () => clearInterval(interval);
-  }, [isVisible, isOnline]);
+  }, [isVisible]);
 
   const handleImageLoad = () => {
     setIsOnline(true);
+    setIsLoading(false);
+    setLastUpdate(new Date());
   };
 
   const handleImageError = () => {
     setIsOnline(false);
+    setIsLoading(true);
     setTimeout(() => setRefreshKey(prev => prev + 1), 3000);
   };
 
@@ -42,6 +45,7 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
 
   const manualRefresh = () => {
     setRefreshKey(prev => prev + 1);
+    setIsLoading(true);
   };
 
   const getStatusText = () => {
@@ -102,13 +106,21 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
             <div className="aspect-video w-full bg-black rounded-xl overflow-hidden border border-gray-600">
               <img
                 ref={imgRef}
-                src={`${streamUrl}stream`}
+                src={`${streamUrl}stream?refresh=${refreshKey}`}
                 alt="Live grow cam feed"
                 className="w-full h-full object-cover"
                 onLoad={handleImageLoad}
                 onError={handleImageError}
               />
-              {!isOnline && (
+              {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                  <div className="text-center space-y-2">
+                    <Camera className="w-12 h-12 text-gray-500 mx-auto animate-pulse" />
+                    <p className="text-gray-400 text-sm">Loading...</p>
+                  </div>
+                </div>
+              )}
+              {!isOnline && !isLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/80">
                   <div className="text-center space-y-4">
                     <Camera className="w-12 h-12 text-gray-500 mx-auto" />
