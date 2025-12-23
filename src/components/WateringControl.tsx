@@ -7,16 +7,6 @@ import { usePLCDirect } from '@/hooks/usePLCDirect';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogClose,
-} from '@/components/ui/dialog';
 
 /**
  * DB / API contract (suggested)
@@ -288,111 +278,44 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
       </CardHeader>
 
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-          {/* Left: visual tank */}
-          <div className="md:col-span-1 flex flex-col items-center gap-4 p-4 bg-gray-900/30 rounded">
-            <div className="w-full">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-xs text-gray-400">Tank Level</div>
-                <Badge variant="outline">{tankPercent.toFixed(0)}%</Badge>
+        <div className="flex flex-col md:flex-row items-start gap-6">
+          <div className="flex-1">
+            <div className="text-xs text-gray-400 mb-1">Tank</div>
+            <div className="flex items-center gap-3">
+              <div className="w-36">
+                <Progress value={tankPercent} className="h-3 rounded" />
               </div>
-              <Progress value={tankPercent} className="h-4" />
-              <div className="mt-3 text-center">
-                <div className="text-lg font-semibold">{local.waterTankLevelLitres.toFixed(2)} L</div>
-                <div className="text-sm text-gray-400">Capacity {tankCapacity} L</div>
-                <div className="text-sm text-gray-400 mt-2">Est. remaining: <span className="font-medium">{estimated}</span></div>
-              </div>
+              <div className="text-sm font-medium">{local.waterTankLevelLitres.toFixed(2)} L</div>
+              <div className="text-xs text-gray-400 ml-auto">{tankPercent.toFixed(0)}%</div>
             </div>
+            <div className="text-xs text-gray-400 mt-2">Est: {estimated}</div>
           </div>
 
-          {/* Middle: main controls */}
-          <div className="md:col-span-1 flex flex-col gap-4 p-4 bg-gray-900/30 rounded">
-            <div className="flex flex-col gap-2 w-full">
-              <Button onClick={handleToggle} disabled={!watering && local.waterTankLevelLitres <= 0} className={`w-full py-4 ${watering ? 'bg-red-500' : 'bg-green-500'} text-lg disabled:opacity-60 disabled:cursor-not-allowed`}>
-                {watering ? <Stop className="w-5 h-5 mr-3 inline" /> : <Play className="w-5 h-5 mr-3 inline" />}
-                {watering ? 'Stop watering' : 'Start watering'}
-              </Button>
-              {local.waterTankLevelLitres <= 0 && (
-                <div className="text-sm text-yellow-400">Tank empty — refill before starting</div>
-              )}
-            </div>
+          <div className="w-48 flex flex-col gap-2">
+            <Button onClick={handleToggle} disabled={!watering && local.waterTankLevelLitres <= 0} className={`py-2 ${watering ? 'bg-red-500' : 'bg-green-500'} text-sm`}>
+              {watering ? 'Stop' : 'Start'}
+            </Button>
 
-            <div className="flex flex-col md:flex-row md:items-center gap-2 w-full">
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => handleRefill(1)}>+1L</Button>
-                <Button variant="ghost" onClick={() => handleRefill(5)}>+5L</Button>
-                <Button variant="ghost" onClick={() => handleRefill(10)}>+10L</Button>
-              </div>
-
-              <div className="ml-auto flex items-center gap-2 min-w-0">
-                <Input type="number" min={0} step={0.1} value={refillAmount} onChange={(e) => setRefillAmount(Number(e.target.value))} className="w-full md:w-24 min-w-0" />
-                <Button variant="outline" onClick={() => handleRefill(refillAmount)} disabled={refillAmount <= 0}>Refill</Button>
-              </div>
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-2 items-center w-full">
-              <Input type="number" min={0} step={0.1} value={manualLevel} onChange={(e) => setManualLevel(Number(e.target.value))} className="w-full md:w-36" />
-              <Button variant="secondary" onClick={() => handleSetLevel(manualLevel)} disabled={manualLevel < 0}>Set Level</Button>
+            <div className="flex gap-2">
+              <Input type="number" min={0} step={0.1} value={refillAmount} onChange={(e) => setRefillAmount(Number(e.target.value))} className="w-20" />
+              <Button variant="outline" onClick={() => handleRefill(refillAmount)} disabled={refillAmount <= 0}>Refill</Button>
             </div>
 
             <div className="flex gap-2">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" disabled={connectionStatus !== 'connected'}>Open Valve</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Open valve now?</DialogTitle>
-                    <DialogDescription>This will immediately open the water valve.</DialogDescription>
-                  </DialogHeader>
-                  <div className="flex justify-end gap-2">
-                    <DialogClose asChild>
-                      <Button variant="outline">Cancel</Button>
-                    </DialogClose>
-                    <Button onClick={() => { handleOpenValve(); }}>
-                      Confirm
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" disabled={connectionStatus !== 'connected'}>Close Valve</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Close valve?</DialogTitle>
-                    <DialogDescription>This will immediately close the water valve.</DialogDescription>
-                  </DialogHeader>
-                  <div className="flex justify-end gap-2">
-                    <DialogClose asChild>
-                      <Button variant="outline">Cancel</Button>
-                    </DialogClose>
-                    <Button onClick={() => { handleCloseValve(); }}>
-                      Confirm
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-
-          {/* Right: meta / status */}
-          <div className="md:col-span-1 flex flex-col gap-3 p-4 bg-gray-900/30 rounded">
-            <div className="text-xs text-gray-400">Stats</div>
-            <div className="text-sm">Total dispensed: <span className="font-medium">{local.totalWateredLitres.toFixed(2)} L</span></div>
-            <div className="text-sm">Total watering time: <span className="font-medium">{formatTime(local.totalWateringSeconds)}</span></div>
-            <div className="text-sm">Flow: <span className="font-medium">{flowPerSecond.toFixed(4)} L/s</span></div>
-
-            <div className="mt-2">
-              <div className="text-xs text-gray-400">Last sync</div>
-              <div className="text-sm font-medium">{formatDate(lastSync)}</div>
+              <Input type="number" min={0} step={0.1} value={manualLevel} onChange={(e) => setManualLevel(Number(e.target.value))} className="w-20" />
+              <Button variant="outline" onClick={() => handleSetLevel(manualLevel)} disabled={manualLevel < 0}>Set</Button>
             </div>
 
-            {error && <div className="text-sm text-red-400">Error: {error} <Button size="sm" variant="ghost" onClick={handleRetry}>Retry</Button></div>}
-            {isLoading && <div className="text-sm text-gray-400">Loading watering data…</div>}
+            <div className="flex gap-2 text-sm">
+              <button className="text-gray-400 hover:text-white" onClick={() => { if (connectionStatus === 'connected' && window.confirm('Open valve?')) handleOpenValve(); }} disabled={connectionStatus !== 'connected'}>Open</button>
+              <button className="text-gray-400 hover:text-white" onClick={() => { if (connectionStatus === 'connected' && window.confirm('Close valve?')) handleCloseValve(); }} disabled={connectionStatus !== 'connected'}>Close</button>
+            </div>
           </div>
+        </div>
+
+        <div className="mt-4 text-xs text-gray-400 flex justify-between">
+          <div>Total: {local.totalWateredLitres.toFixed(2)} L</div>
+          <div>Last: {formatDate(lastSync)}</div>
         </div>
       </CardContent>
     </Card>
