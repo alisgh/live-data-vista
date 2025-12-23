@@ -84,7 +84,6 @@ const LiveGrowCam: React.FC<Props> = ({
             <img
               ref={imgRef}
               className="w-full h-full object-cover"
-              alt="Live camera"
             />
           </div>
         ) : (
