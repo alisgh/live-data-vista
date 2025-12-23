@@ -1,23 +1,58 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Eye, EyeOff, Camera } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
-interface LiveGrowCamProps {
-  streamUrl?: string;
+interface Props {
+  wsUrl?: string;
 }
 
-const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
-  streamUrl = 'http://192.168.0.135:8087/stream'
+const LiveGrowCam: React.FC<Props> = ({
+  wsUrl = 'ws://192.168.0.135:8090'
 }) => {
   const [visible, setVisible] = useState(true);
   const [online, setOnline] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const lastUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+
+    const ws = new WebSocket(wsUrl);
+    ws.binaryType = 'arraybuffer';
+    wsRef.current = ws;
+
+    ws.onopen = () => setOnline(true);
+    ws.onclose = () => setOnline(false);
+    ws.onerror = () => setOnline(false);
+
+    ws.onmessage = event => {
+      const blob = new Blob([event.data], { type: 'image/jpeg' });
+      const url = URL.createObjectURL(blob);
+
+      if (imgRef.current) {
+        imgRef.current.src = url;
+      }
+
+      if (lastUrlRef.current) {
+        URL.revokeObjectURL(lastUrlRef.current);
+      }
+
+      lastUrlRef.current = url;
+    };
+
+    return () => {
+      ws.close();
+      wsRef.current = null;
+    };
+  }, [visible, wsUrl]);
 
   return (
     <Card className="bg-gray-800/50 border-gray-700">
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle className="flex items-center gap-2 text-green-400">
+          <CardTitle className="flex gap-2 items-center text-green-400">
             <Camera className="w-5 h-5" />
             Live Grow Cam
           </CardTitle>
@@ -47,10 +82,9 @@ const LiveGrowCam: React.FC<LiveGrowCamProps> = ({
         {visible ? (
           <div className="aspect-video bg-black rounded-lg overflow-hidden">
             <img
-              src={streamUrl}
+              ref={imgRef}
               className="w-full h-full object-cover"
-              onLoad={() => setOnline(true)}
-              onError={() => setOnline(false)}
+              alt="Live camera"
             />
           </div>
         ) : (
