@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Play, Stop, Droplet, RefreshCcw } from 'lucide-react';
+import { Play, Square as Stop, Droplet, RefreshCcw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useWatering } from '@/hooks/useWatering';
