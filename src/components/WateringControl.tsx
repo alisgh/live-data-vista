@@ -48,6 +48,8 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
     totalWateringSeconds: 0,
   });
 
+  const [refillAmount, setRefillAmount] = useState<number>(10);
+
   // Keep local up-to-date when remote data arrives
   useEffect(() => {
     if (data) setLocal(data);
@@ -155,14 +157,18 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
   };
 
   const handleRefill = async (amount = 10) => {
-    setLocal(prev => ({ ...prev, waterTankLevelLitres: prev.waterTankLevelLitres + amount }));
+    // Compute new local state based on current value to avoid stale closure issues
+    const newLocal = { ...local, waterTankLevelLitres: +(local.waterTankLevelLitres + amount) };
+    setLocal(newLocal);
     // push to server
     try {
-      await updateWatering({ ...local, waterTankLevelLitres: local.waterTankLevelLitres + amount });
+      await updateWatering(newLocal);
+      toast({ title: 'Tank refilled', description: `Added ${amount} L`, duration: 3000 });
     } catch (err) {
       console.error('Failed to refill tank:', err);
+      toast({ title: 'Refill failed', description: String(err), variant: 'destructive' });
     }
-  };
+  }; 
 
   const handleOpenValve = async () => {
     if (connectionStatus !== 'connected') {
@@ -257,9 +263,22 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
               {watering ? 'Stop' : 'Start'}
             </Button>
 
-            <Button variant="outline" onClick={() => handleRefill(10)}>
-              Refill +10L
-            </Button>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                step={0.1}
+                value={refillAmount}
+                onChange={(e) => setRefillAmount(Number(e.target.value))}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleRefill(refillAmount); }}
+                className="w-20 bg-gray-900/30 border border-gray-700 rounded px-2 py-1 text-sm text-white"
+                aria-label="Refill amount (litres)"
+              />
+
+              <Button variant="outline" onClick={() => handleRefill(refillAmount)} disabled={refillAmount <= 0}>
+                Refill
+              </Button>
+            </div>
 
             <Button size="sm" variant="ghost" onClick={handleOpenValve} disabled={connectionStatus !== 'connected'}>
               Open Valve
