@@ -6,7 +6,6 @@ import ConnectionStatus from '@/components/ConnectionStatus';
 import LiveGrowCam from '@/components/LiveGrowCam';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Settings } from 'lucide-react';
 
 const Index = () => {
   const [controllerIp, setControllerIp] = useState('192.168.100.70');
@@ -45,12 +44,6 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Link to="/plc-config">
-              <Button variant="outline" className="border-purple-600 text-purple-400 hover:bg-purple-600/20">
-                <Settings className="h-4 w-4 mr-2" />
-                PLC Variables
-              </Button>
-            </Link>
             <ConnectionStatus status={connectionStatus} onReconnect={reconnect} />
           </div>
         </div>
