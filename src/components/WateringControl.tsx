@@ -3,6 +3,8 @@ import { Play, Square as Stop, Droplet, RefreshCcw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useWatering } from '@/hooks/useWatering';
+import { usePLCDirect } from '@/hooks/usePLCDirect';
+import { useToast } from '@/hooks/use-toast';
 
 /**
  * DB / API contract (suggested)
@@ -36,6 +38,8 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
   const flowPerSecond = useMemo(() => litresPerFiveMinutes / (5 * 60), [litresPerFiveMinutes]);
 
   const { data, isLoading, error, fetchWatering, updateWatering } = useWatering();
+  const { writeVariable, connectionStatus } = usePLCDirect();
+  const { toast } = useToast();
 
   const [watering, setWatering] = useState(false);
   const [local, setLocal] = useState({
@@ -151,6 +155,36 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
     }
   };
 
+  const handleOpenValve = async () => {
+    if (connectionStatus !== 'connected') {
+      toast({ title: 'PLC not connected', description: 'Cannot open valve while PLC is disconnected', variant: 'destructive' });
+      return;
+    }
+    try {
+      await writeVariable('b_water', 1);
+      toast({ title: 'Valve Opened', description: 'Open command sent', duration: 3000 });
+      setWatering(true);
+    } catch (err) {
+      toast({ title: 'Open Failed', description: String(err), variant: 'destructive' });
+      console.error('Failed to open valve:', err);
+    }
+  };
+
+  const handleCloseValve = async () => {
+    if (connectionStatus !== 'connected') {
+      toast({ title: 'PLC not connected', description: 'Cannot close valve while PLC is disconnected', variant: 'destructive' });
+      return;
+    }
+    try {
+      await writeVariable('b_water', 0);
+      toast({ title: 'Valve Closed', description: 'Close command sent', duration: 3000 });
+      setWatering(false);
+    } catch (err) {
+      toast({ title: 'Close Failed', description: String(err), variant: 'destructive' });
+      console.error('Failed to close valve:', err);
+    }
+  };
+
   const formatTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -201,6 +235,14 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
 
             <Button variant="outline" onClick={() => handleRefill(10)}>
               Refill +10L
+            </Button>
+
+            <Button size="sm" variant="ghost" onClick={handleOpenValve} disabled={connectionStatus !== 'connected'}>
+              Open Valve
+            </Button>
+
+            <Button size="sm" variant="outline" onClick={handleCloseValve} disabled={connectionStatus !== 'connected'}>
+              Close Valve
             </Button>
 
             <div className="text-sm text-gray-400 ml-auto">Flow: {flowPerSecond.toFixed(4)} L/s ({litresPerFiveMinutes} L / 5m)</div>
