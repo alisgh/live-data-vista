@@ -50,9 +50,14 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
 
   const [refillAmount, setRefillAmount] = useState<number>(10);
 
+  const [manualLevel, setManualLevel] = useState<number>(0);
+
   // Keep local up-to-date when remote data arrives
   useEffect(() => {
-    if (data) setLocal(data);
+    if (data) {
+      setLocal(data);
+      setManualLevel(data.waterTankLevelLitres ?? 0);
+    }
   }, [data]);
 
   // Interval that simulates flow when valve is open
@@ -168,7 +173,26 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
       console.error('Failed to refill tank:', err);
       toast({ title: 'Refill failed', description: String(err), variant: 'destructive' });
     }
-  }; 
+  };
+
+  const handleSetLevel = async (level: number) => {
+    if (level < 0) {
+      toast({ title: 'Invalid level', description: 'Water level must be 0 or greater', variant: 'destructive' });
+      return;
+    }
+
+    const newLocal = { ...local, waterTankLevelLitres: +level };
+    setLocal(newLocal);
+    setManualLevel(level);
+
+    try {
+      await updateWatering(newLocal);
+      toast({ title: 'Water level set', description: `${level} L`, duration: 3000 });
+    } catch (err) {
+      console.error('Failed to set water level:', err);
+      toast({ title: 'Set level failed', description: String(err), variant: 'destructive' });
+    }
+  };  
 
   const handleOpenValve = async () => {
     if (connectionStatus !== 'connected') {
@@ -277,6 +301,21 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
 
               <Button variant="outline" onClick={() => handleRefill(refillAmount)} disabled={refillAmount <= 0}>
                 Refill
+              </Button>
+
+              <input
+                type="number"
+                min={0}
+                step={0.1}
+                value={manualLevel}
+                onChange={(e) => setManualLevel(Number(e.target.value))}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSetLevel(manualLevel); }}
+                className="w-24 bg-gray-900/30 border border-gray-700 rounded px-2 py-1 text-sm text-white"
+                aria-label="Set tank level (litres)"
+              />
+
+              <Button variant="secondary" onClick={() => handleSetLevel(manualLevel)} disabled={manualLevel < 0}>
+                Set Level
               </Button>
             </div>
 
