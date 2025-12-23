@@ -123,11 +123,20 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
   const handleToggle = async () => {
     // If starting and tank is empty, attempt to fetch remote data first
     if (!watering && local.waterTankLevelLitres <= 0) {
-      await fetchWatering();
-      if (data && data.waterTankLevelLitres <= 0) {
-        // nothing to do
-        setWatering(false);
-        return;
+      const remote = await fetchWatering();
+      if (remote === null) {
+        // API unreachable — let user proceed locally only if tank has some water
+        toast({ title: 'Watering API unreachable', description: 'Proceeding with local simulation', duration: 4000 });
+        if (local.waterTankLevelLitres <= 0) {
+          setWatering(false);
+          return;
+        }
+      } else {
+        if (remote.waterTankLevelLitres <= 0) {
+          // nothing to do
+          setWatering(false);
+          return;
+        }
       }
     }
 
@@ -185,6 +194,15 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
     }
   };
 
+  const handleRetry = async () => {
+    const result = await fetchWatering();
+    if (result) {
+      toast({ title: 'Reconnected', description: 'Watering API is reachable', duration: 3000 });
+    } else {
+      toast({ title: 'Still offline', description: 'Failed to reach API', variant: 'destructive' });
+    }
+  };
+
   const formatTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -212,6 +230,12 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
 
       <CardContent>
         <div className="flex flex-col gap-4">
+          {error && (
+            <div className="flex items-center gap-2 text-yellow-400">
+              <div className="text-sm">Watering API offline</div>
+              <Button size="sm" variant="ghost" onClick={handleRetry}>Retry</Button>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-gray-900/40 p-3 rounded">
               <div className="text-xs text-gray-400">Total Dispensed</div>
