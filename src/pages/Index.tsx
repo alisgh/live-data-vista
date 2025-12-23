@@ -6,6 +6,7 @@ import ConnectionStatus from '@/components/ConnectionStatus';
 import LiveGrowCam from '@/components/LiveGrowCam';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import WateringControl from '@/components/WateringControl';
 
 const Index = () => {
   const [controllerIp, setControllerIp] = useState('192.168.100.70');
@@ -60,27 +61,7 @@ const Index = () => {
           </div>
 
           <div className="transition-all duration-300 hover:scale-[1.01]">
-            <div className="p-6 bg-gray-700/30 rounded-xl border border-gray-600">
-              <h3 className="text-lg font-semibold text-gray-200 mb-4">Water Control</h3>
-              <p className="text-sm text-gray-400 mb-4">Trigger a 5-second water pulse to water the plant.</p>
-              <div className="flex flex-col gap-3">
-                <Button onClick={handleWater} className="bg-blue-500 text-white hover:bg-blue-600" disabled={connectionStatus !== 'connected'}>
-                  Open 5s
-                </Button>
-                <Button variant="outline" onClick={() => writeVariable('b_water', 1)} disabled={connectionStatus !== 'connected'}>
-                  Open (Manual Write 1)
-                </Button>
-                <Button variant="ghost" onClick={() => writeVariable('b_water', 0)} disabled={connectionStatus !== 'connected'}>
-                  Close (Manual Write 0)
-                </Button>
-              </div>
-
-              <div className="mt-4 text-xs text-gray-400">
-                <div>PLC: <span className="font-mono">{controllerIp}</span></div>
-                <div>Status: <span className="capitalize">{connectionStatus}</span></div>
-                <div>Data: {data ? 'Live (Available)' : 'No Data'}</div>
-              </div>
-            </div>
+            <WateringControl />
           </div>
         </div>
       </main>
