@@ -315,8 +315,7 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
             </div>
             {local.waterTankLevelLitres <= 0 && (
               <div className="text-sm text-yellow-400">Tank empty — refill before starting</div>
-            )
-            </div>
+            )}
 
             <div className="flex gap-2">
               <Button variant="ghost" onClick={() => handleRefill(1)}>+1L</Button>
