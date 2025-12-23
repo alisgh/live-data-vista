@@ -37,7 +37,7 @@ interface Props {
   tankCapacity?: number;
 }
 
-const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncIntervalMs = 15000, tankCapacity = 100 }) => {
+const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncIntervalMs = 15000, tankCapacity = 10 }) => {
   // Flow per second
   const flowPerSecond = useMemo(() => litresPerFiveMinutes / (5 * 60), [litresPerFiveMinutes]);
 
@@ -155,34 +155,39 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
     if (!watering && local.waterTankLevelLitres <= 0) {
       const remote = await fetchWatering();
       if (remote === null) {
-        // API unreachable — let user proceed locally only if tank has some water
         toast({ title: 'Watering API unreachable', description: 'Proceeding with local simulation', duration: 4000 });
         if (local.waterTankLevelLitres <= 0) {
-          setWatering(false);
-          return;
+          return; // nothing to start
         }
       } else {
         if (remote.waterTankLevelLitres <= 0) {
-          // nothing to do
-          setWatering(false);
-          return;
+          return; // nothing to start
         }
       }
     }
 
-    setWatering(v => {
-      const next = !v;
-      // Immediate sync when toggling
-      (async () => {
-        try {
-          await updateWatering(local);
-          setLastSync(Date.now());
-        } catch (err) {
-          console.error('Immediate sync failed:', err);
-        }
-      })();
-      return next;
-    });
+    if (!watering) {
+      // starting: attempt to open the valve on PLC
+      const ok = await handleOpenValve();
+      if (!ok) return; // failed to open PLC valve
+      // sync state
+      try {
+        await updateWatering(local);
+        setLastSync(Date.now());
+      } catch (err) {
+        console.error('Immediate sync failed after open:', err);
+      }
+    } else {
+      // stopping: attempt to close the valve on PLC
+      const ok = await handleCloseValve();
+      if (!ok) return;
+      try {
+        await updateWatering(local);
+        setLastSync(Date.now());
+      } catch (err) {
+        console.error('Immediate sync failed after close:', err);
+      }
+    }
   };
 
   const handleRefill = async (amount = 10) => {
@@ -220,33 +225,37 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
     }
   };  
 
-  const handleOpenValve = async () => {
+  const handleOpenValve = async (): Promise<boolean> => {
     if (connectionStatus !== 'connected') {
       toast({ title: 'PLC not connected', description: 'Cannot open valve while PLC is disconnected', variant: 'destructive' });
-      return;
+      return false;
     }
     try {
       await writeVariable('b_water', 1);
       toast({ title: 'Valve Opened', description: 'Open command sent', duration: 3000 });
       setWatering(true);
+      return true;
     } catch (err) {
       toast({ title: 'Open Failed', description: String(err), variant: 'destructive' });
       console.error('Failed to open valve:', err);
+      return false;
     }
   };
 
-  const handleCloseValve = async () => {
+  const handleCloseValve = async (): Promise<boolean> => {
     if (connectionStatus !== 'connected') {
       toast({ title: 'PLC not connected', description: 'Cannot close valve while PLC is disconnected', variant: 'destructive' });
-      return;
+      return false;
     }
     try {
       await writeVariable('b_water', 0);
       toast({ title: 'Valve Closed', description: 'Close command sent', duration: 3000 });
       setWatering(false);
+      return true;
     } catch (err) {
       toast({ title: 'Close Failed', description: String(err), variant: 'destructive' });
       console.error('Failed to close valve:', err);
+      return false;
     }
   };
 
