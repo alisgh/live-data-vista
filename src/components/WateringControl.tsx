@@ -307,29 +307,31 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
 
           {/* Middle: main controls */}
           <div className="md:col-span-1 flex flex-col gap-4 p-4 bg-gray-900/30 rounded">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-2 w-full">
               <Button onClick={handleToggle} disabled={!watering && local.waterTankLevelLitres <= 0} className={`w-full py-4 ${watering ? 'bg-red-500' : 'bg-green-500'} text-lg disabled:opacity-60 disabled:cursor-not-allowed`}>
                 {watering ? <Stop className="w-5 h-5 mr-3 inline" /> : <Play className="w-5 h-5 mr-3 inline" />}
                 {watering ? 'Stop watering' : 'Start watering'}
               </Button>
+              {local.waterTankLevelLitres <= 0 && (
+                <div className="text-sm text-yellow-400">Tank empty — refill before starting</div>
+              )}
             </div>
-            {local.waterTankLevelLitres <= 0 && (
-              <div className="text-sm text-yellow-400">Tank empty — refill before starting</div>
-            )}
 
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => handleRefill(1)}>+1L</Button>
-              <Button variant="ghost" onClick={() => handleRefill(5)}>+5L</Button>
-              <Button variant="ghost" onClick={() => handleRefill(10)}>+10L</Button>
+            <div className="flex flex-col md:flex-row md:items-center gap-2 w-full">
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => handleRefill(1)}>+1L</Button>
+                <Button variant="ghost" onClick={() => handleRefill(5)}>+5L</Button>
+                <Button variant="ghost" onClick={() => handleRefill(10)}>+10L</Button>
+              </div>
 
-              <div className="ml-auto flex items-center gap-2">
-                <Input type="number" min={0} step={0.1} value={refillAmount} onChange={(e) => setRefillAmount(Number(e.target.value))} className="w-24" />
+              <div className="ml-auto flex items-center gap-2 min-w-0">
+                <Input type="number" min={0} step={0.1} value={refillAmount} onChange={(e) => setRefillAmount(Number(e.target.value))} className="w-full md:w-24 min-w-0" />
                 <Button variant="outline" onClick={() => handleRefill(refillAmount)} disabled={refillAmount <= 0}>Refill</Button>
               </div>
             </div>
 
-            <div className="flex gap-2">
-              <Input type="number" min={0} step={0.1} value={manualLevel} onChange={(e) => setManualLevel(Number(e.target.value))} className="w-36" />
+            <div className="flex flex-col md:flex-row gap-2 items-center w-full">
+              <Input type="number" min={0} step={0.1} value={manualLevel} onChange={(e) => setManualLevel(Number(e.target.value))} className="w-full md:w-36" />
               <Button variant="secondary" onClick={() => handleSetLevel(manualLevel)} disabled={manualLevel < 0}>Set Level</Button>
             </div>
 
