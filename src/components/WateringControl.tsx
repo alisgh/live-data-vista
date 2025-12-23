@@ -7,6 +7,7 @@ import { usePLCDirect } from '@/hooks/usePLCDirect';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 
 /**
  * DB / API contract (suggested)
@@ -223,9 +224,22 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
       console.error('Failed to set water level:', err);
       toast({ title: 'Set level failed', description: String(err), variant: 'destructive' });
     }
-  };  
+  };
 
-  const handleOpenValve = async (): Promise<boolean> => {
+  const handleReset = async () => {
+    const newLocal = { totalWateredLitres: 0, waterTankLevelLitres: 0, totalWateringSeconds: 0 };
+    setLocal(newLocal);
+    try {
+      await updateWatering(newLocal);
+      setLastSync(Date.now());
+      toast({ title: 'Reset', description: 'All watering values set to 0', duration: 3000 });
+    } catch (err) {
+      console.error('Failed to reset watering data:', err);
+      toast({ title: 'Reset failed', description: String(err), variant: 'destructive' });
+    }
+  };
+
+  const handleOpenValve = async (): Promise<boolean> => { 
     if (connectionStatus !== 'connected') {
       toast({ title: 'PLC not connected', description: 'Cannot open valve while PLC is disconnected', variant: 'destructive' });
       return false;
@@ -315,7 +329,25 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
               <Button variant="outline" onClick={() => handleSetLevel(manualLevel)} disabled={manualLevel < 0}>Set</Button>
             </div>
 
-            <div className="flex gap-2 text-sm">
+            <div className="flex gap-2 text-sm items-center">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <button className="text-gray-400 hover:text-white">Reset</button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Reset watering stats?</DialogTitle>
+                    <DialogDescription>Setting all values to 0 will clear totals. This action cannot be undone.</DialogDescription>
+                  </DialogHeader>
+                  <div className="flex justify-end gap-2">
+                    <DialogClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={() => { handleReset(); }}>Confirm</Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               <button className="text-gray-400 hover:text-white" onClick={() => { if (connectionStatus === 'connected' && window.confirm('Open valve?')) handleOpenValve(); }} disabled={connectionStatus !== 'connected'}>Open</button>
               <button className="text-gray-400 hover:text-white" onClick={() => { if (connectionStatus === 'connected' && window.confirm('Close valve?')) handleCloseValve(); }} disabled={connectionStatus !== 'connected'}>Close</button>
             </div>
