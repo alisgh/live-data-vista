@@ -5,6 +5,18 @@ import { Button } from '@/components/ui/button';
 import { useWatering } from '@/hooks/useWatering';
 import { usePLCDirect } from '@/hooks/usePLCDirect';
 import { useToast } from '@/hooks/use-toast';
+import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from '@/components/ui/dialog';
 
 /**
  * DB / API contract (suggested)
@@ -31,9 +43,11 @@ interface Props {
   litresPerFiveMinutes?: number;
   // How often to auto-sync with the server (ms)
   syncIntervalMs?: number;
+  // Tank capacity in litres for progress calculation
+  tankCapacity?: number;
 }
 
-const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncIntervalMs = 15000 }) => {
+const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncIntervalMs = 15000, tankCapacity = 100 }) => {
   // Flow per second
   const flowPerSecond = useMemo(() => litresPerFiveMinutes / (5 * 60), [litresPerFiveMinutes]);
 
@@ -52,11 +66,30 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
 
   const [manualLevel, setManualLevel] = useState<number>(0);
 
+  const [lastSync, setLastSync] = useState<number | null>(null);
+
+  // Helper: format seconds -> human readable
+  function formatTime(seconds: number) {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hrs > 0) return `${hrs}h ${mins}m ${secs}s`;
+    if (mins > 0) return `${mins}m ${secs}s`;
+    return `${secs}s`;
+  }
+
+  // Derived / UI values
+  const tankPercent = Math.min(100, Math.max(0, (local.waterTankLevelLitres / tankCapacity) * 100));
+  const estimatedSeconds = flowPerSecond > 0 ? Math.floor(local.waterTankLevelLitres / flowPerSecond) : 0;
+  const estimated = formatTime(estimatedSeconds);
+  const formatDate = (ts: number | null) => (ts ? new Date(ts).toLocaleTimeString() : '—');
+
   // Keep local up-to-date when remote data arrives
   useEffect(() => {
     if (data) {
       setLocal(data);
       setManualLevel(data.waterTankLevelLitres ?? 0);
+      setLastSync(Date.now());
     }
   }, [data]);
 
@@ -153,6 +186,7 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
       (async () => {
         try {
           await updateWatering(local);
+          setLastSync(Date.now());
         } catch (err) {
           console.error('Immediate sync failed:', err);
         }
@@ -168,6 +202,7 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
     // push to server
     try {
       await updateWatering(newLocal);
+      setLastSync(Date.now());
       toast({ title: 'Tank refilled', description: `Added ${amount} L`, duration: 3000 });
     } catch (err) {
       console.error('Failed to refill tank:', err);
@@ -187,6 +222,7 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
 
     try {
       await updateWatering(newLocal);
+      setLastSync(Date.now());
       toast({ title: 'Water level set', description: `${level} L`, duration: 3000 });
     } catch (err) {
       console.error('Failed to set water level:', err);
@@ -233,14 +269,7 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    if (hrs > 0) return `${hrs}h ${mins}m ${secs}s`;
-    if (mins > 0) return `${mins}m ${secs}s`;
-    return `${secs}s`;
-  };
+
 
   return (
     <Card className="bg-gray-800/50 border-gray-700">
@@ -259,79 +288,110 @@ const WateringControl: React.FC<Props> = ({ litresPerFiveMinutes = 2, syncInterv
       </CardHeader>
 
       <CardContent>
-        <div className="flex flex-col gap-4">
-          {error && (
-            <div className="flex items-center gap-2 text-yellow-400">
-              <div className="text-sm">Watering API offline</div>
-              <Button size="sm" variant="ghost" onClick={handleRetry}>Retry</Button>
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-900/40 p-3 rounded">
-              <div className="text-xs text-gray-400">Total Dispensed</div>
-              <div className="text-xl font-semibold">{local.totalWateredLitres.toFixed(3)} L</div>
-            </div>
-            <div className="bg-gray-900/40 p-3 rounded">
-              <div className="text-xs text-gray-400">Tank Level</div>
-              <div className="text-xl font-semibold">{local.waterTankLevelLitres.toFixed(3)} L</div>
-            </div>
-            <div className="bg-gray-900/40 p-3 rounded col-span-2">
-              <div className="text-xs text-gray-400">Total Watering Time</div>
-              <div className="text-xl font-semibold">{formatTime(local.totalWateringSeconds)}</div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+          {/* Left: visual tank */}
+          <div className="md:col-span-1 flex flex-col items-center gap-4 p-4 bg-gray-900/30 rounded">
+            <div className="w-full">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs text-gray-400">Tank Level</div>
+                <Badge variant="outline">{tankPercent.toFixed(0)}%</Badge>
+              </div>
+              <Progress value={tankPercent} className="h-4" />
+              <div className="mt-3 text-center">
+                <div className="text-lg font-semibold">{local.waterTankLevelLitres.toFixed(2)} L</div>
+                <div className="text-sm text-gray-400">Capacity {tankCapacity} L</div>
+                <div className="text-sm text-gray-400 mt-2">Est. remaining: <span className="font-medium">{estimated}</span></div>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Button onClick={handleToggle} className={watering ? 'bg-red-500' : 'bg-green-500'}>
-              {watering ? <Stop className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-              {watering ? 'Stop' : 'Start'}
-            </Button>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={0}
-                step={0.1}
-                value={refillAmount}
-                onChange={(e) => setRefillAmount(Number(e.target.value))}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleRefill(refillAmount); }}
-                className="w-20 bg-gray-900/30 border border-gray-700 rounded px-2 py-1 text-sm text-white"
-                aria-label="Refill amount (litres)"
-              />
-
-              <Button variant="outline" onClick={() => handleRefill(refillAmount)} disabled={refillAmount <= 0}>
-                Refill
-              </Button>
-
-              <input
-                type="number"
-                min={0}
-                step={0.1}
-                value={manualLevel}
-                onChange={(e) => setManualLevel(Number(e.target.value))}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleSetLevel(manualLevel); }}
-                className="w-24 bg-gray-900/30 border border-gray-700 rounded px-2 py-1 text-sm text-white"
-                aria-label="Set tank level (litres)"
-              />
-
-              <Button variant="secondary" onClick={() => handleSetLevel(manualLevel)} disabled={manualLevel < 0}>
-                Set Level
+          {/* Middle: main controls */}
+          <div className="md:col-span-1 flex flex-col gap-4 p-4 bg-gray-900/30 rounded">
+            <div className="flex items-center gap-4">
+              <Button onClick={handleToggle} disabled={!watering && local.waterTankLevelLitres <= 0} className={`w-full py-4 ${watering ? 'bg-red-500' : 'bg-green-500'} text-lg disabled:opacity-60 disabled:cursor-not-allowed`}>
+                {watering ? <Stop className="w-5 h-5 mr-3 inline" /> : <Play className="w-5 h-5 mr-3 inline" />}
+                {watering ? 'Stop watering' : 'Start watering'}
               </Button>
             </div>
+            {local.waterTankLevelLitres <= 0 && (
+              <div className="text-sm text-yellow-400">Tank empty — refill before starting</div>
+            )
+            </div>
 
-            <Button size="sm" variant="ghost" onClick={handleOpenValve} disabled={connectionStatus !== 'connected'}>
-              Open Valve
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => handleRefill(1)}>+1L</Button>
+              <Button variant="ghost" onClick={() => handleRefill(5)}>+5L</Button>
+              <Button variant="ghost" onClick={() => handleRefill(10)}>+10L</Button>
 
-            <Button size="sm" variant="outline" onClick={handleCloseValve} disabled={connectionStatus !== 'connected'}>
-              Close Valve
-            </Button>
+              <div className="ml-auto flex items-center gap-2">
+                <Input type="number" min={0} step={0.1} value={refillAmount} onChange={(e) => setRefillAmount(Number(e.target.value))} className="w-24" />
+                <Button variant="outline" onClick={() => handleRefill(refillAmount)} disabled={refillAmount <= 0}>Refill</Button>
+              </div>
+            </div>
 
-            <div className="text-sm text-gray-400 ml-auto">Flow: {flowPerSecond.toFixed(4)} L/s ({litresPerFiveMinutes} L / 5m)</div>
+            <div className="flex gap-2">
+              <Input type="number" min={0} step={0.1} value={manualLevel} onChange={(e) => setManualLevel(Number(e.target.value))} className="w-36" />
+              <Button variant="secondary" onClick={() => handleSetLevel(manualLevel)} disabled={manualLevel < 0}>Set Level</Button>
+            </div>
+
+            <div className="flex gap-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" disabled={connectionStatus !== 'connected'}>Open Valve</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Open valve now?</DialogTitle>
+                    <DialogDescription>This will immediately open the water valve.</DialogDescription>
+                  </DialogHeader>
+                  <div className="flex justify-end gap-2">
+                    <DialogClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={() => { handleOpenValve(); }}>
+                      Confirm
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" disabled={connectionStatus !== 'connected'}>Close Valve</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Close valve?</DialogTitle>
+                    <DialogDescription>This will immediately close the water valve.</DialogDescription>
+                  </DialogHeader>
+                  <div className="flex justify-end gap-2">
+                    <DialogClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={() => { handleCloseValve(); }}>
+                      Confirm
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
 
-          {error && <div className="text-sm text-red-400">Error: {error}</div>}
-          {isLoading && <div className="text-sm text-gray-400">Loading watering data…</div>}
+          {/* Right: meta / status */}
+          <div className="md:col-span-1 flex flex-col gap-3 p-4 bg-gray-900/30 rounded">
+            <div className="text-xs text-gray-400">Stats</div>
+            <div className="text-sm">Total dispensed: <span className="font-medium">{local.totalWateredLitres.toFixed(2)} L</span></div>
+            <div className="text-sm">Total watering time: <span className="font-medium">{formatTime(local.totalWateringSeconds)}</span></div>
+            <div className="text-sm">Flow: <span className="font-medium">{flowPerSecond.toFixed(4)} L/s</span></div>
+
+            <div className="mt-2">
+              <div className="text-xs text-gray-400">Last sync</div>
+              <div className="text-sm font-medium">{formatDate(lastSync)}</div>
+            </div>
+
+            {error && <div className="text-sm text-red-400">Error: {error} <Button size="sm" variant="ghost" onClick={handleRetry}>Retry</Button></div>}
+            {isLoading && <div className="text-sm text-gray-400">Loading watering data…</div>}
+          </div>
         </div>
       </CardContent>
     </Card>
