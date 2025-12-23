@@ -1,32 +1,14 @@
 
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React from 'react';
 import { usePLCDirect } from '@/hooks/usePLCDirect';
 import ConnectionStatus from '@/components/ConnectionStatus';
 import LiveGrowCam from '@/components/LiveGrowCam';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import WateringControl from '@/components/WateringControl';
+
 
 const Index = () => {
-  const [controllerIp, setControllerIp] = useState('192.168.100.70');
-  const { data, connectionStatus, writeVariable, refreshData, isLoading, triggerPulse } = usePLCDirect();
+  const { data, connectionStatus, writeVariable, refreshData, isLoading } = usePLCDirect();
   const { toast } = useToast();
-
-  const handleWater = async () => {
-    try {
-      await triggerPulse('b_water', 5000);
-      toast({
-        title: 'Water Pulse Sent',
-        description: 'Opened water valve for 5 seconds',
-        duration: 3000,
-      });
-      console.log('Water pulse triggered for 5s');
-    } catch (err) {
-      toast({ title: 'Water Error', description: String(err), variant: 'destructive', duration: 5000 });
-      console.error('Failed to trigger water valve:', err);
-    }
-  };
 
   const reconnect = () => {
     refreshData();
@@ -50,19 +32,10 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Main - only webcam + water control */}
+      {/* Main - only Live Grow Cam */}
       <main className="container mx-auto px-4 lg:px-6 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 transition-all duration-300 hover:scale-[1.01]">
-            <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
-              <h2 className="text-lg font-semibold text-gray-200 mb-4">Live Camera</h2>
-              <LiveGrowCam />
-            </div>
-          </div>
-
-          <div className="transition-all duration-300 hover:scale-[1.01]">
-            <WateringControl />
-          </div>
+        <div className="max-w-3xl mx-auto">
+          <LiveGrowCam />
         </div>
       </main>
     </div>
