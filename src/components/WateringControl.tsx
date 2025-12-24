@@ -10,17 +10,14 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 
 /**
- * DB / API contract (suggested)
+ * API contract (current server)
  *
- * Table: watering_stats
- * - total_watered_litres REAL NOT NULL DEFAULT 0
- * - water_tank_level_litres REAL NOT NULL DEFAULT 0
- * - total_watering_seconds INTEGER NOT NULL DEFAULT 0
- * - updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+ * The provided Watering API exposes the following endpoints:
+ * - GET  /api/watering -> { waterLevel, lastWatering, pumpActive }
  *
- * Endpoints:
- * - GET  /api/watering -> { totalWateredLitres, waterTankLevelLitres, totalWateringSeconds }
- * - POST /api/watering -> accepts partial { totalWateredLitres?, waterTankLevelLitres?, totalWateringSeconds? } and returns updated object
+ * Note: The frontend maps these fields into its internal shape: `waterTankLevelLitres` is derived from `waterLevel`.
+ * If you want the backend to support totals and seconds, extend the GET/POST payload to include
+ * `totalWateredLitres` and `totalWateringSeconds`.
  */
 
 export const DB_WATERING_COLUMNS = {
