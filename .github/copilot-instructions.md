@@ -30,7 +30,7 @@ Purpose: short, actionable guidance so AI coding agents can be immediately produ
   - `vite.config.ts` top: `const PLC_IP = 'http://192.168.100.70'`
 - Local plant API host: `usePlantData.ts` currently uses `API_BASE = 'http://192.168.0.229:3001/api'`. For local work change to `http://localhost:3001/api` or run the server on that IP.
 - WebSocket security: if your site runs over HTTPS, use `wss://` for camera/PLC sockets; otherwise `useWebSocket` will return `connectionStatus: 'blocked'`.
-- Camera: default live cam URL is set in `src/components/LiveGrowCam.tsx` (default `ws://192.168.0.135:8090`). Update as needed.
+- Camera: the UI now uses the browser's USB camera via `navigator.mediaDevices.getUserMedia()` in `src/components/LiveGrowCam.tsx` (previously the default was `ws://192.168.0.135:8090`). Update as needed.
 
 ## Concrete examples (where to edit) ✍️
 - Change PLC proxy target (dev): edit `vite.config.ts` → `PLC_IP`.
