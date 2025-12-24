@@ -4,78 +4,49 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 interface Props {
-  // kept for compatibility; not used for USB camera
   wsUrl?: string;
 }
 
-const LiveGrowCam: React.FC<Props> = ({ wsUrl }) => {
+const LiveGrowCam: React.FC<Props> = ({
+  wsUrl = 'ws://192.168.0.158:8090'
+}) => {
   const [visible, setVisible] = useState(true);
   const [online, setOnline] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const lastUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
-    let active = true;
+    if (!visible) return;
 
-    async function startCamera() {
-      if (!visible) return;
+    const ws = new WebSocket(wsUrl);
+    ws.binaryType = 'arraybuffer';
+    wsRef.current = ws;
 
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setOnline(false);
-        return;
+    ws.onopen = () => setOnline(true);
+    ws.onclose = () => setOnline(false);
+    ws.onerror = () => setOnline(false);
+
+    ws.onmessage = event => {
+      const blob = new Blob([event.data], { type: 'image/jpeg' });
+      const url = URL.createObjectURL(blob);
+
+      if (imgRef.current) {
+        imgRef.current.src = url;
       }
 
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        if (!active) {
-          // component unmounted before camera started
-          stream.getTracks().forEach(t => t.stop());
-          return;
-        }
-
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          // some browsers require play() to be called programmatically
-          const playPromise = videoRef.current.play();
-          if (playPromise && typeof playPromise.then === 'function') {
-            playPromise.catch(() => {});
-          }
-        }
-
-        setOnline(true);
-      } catch (err) {
-        console.error('Failed to access camera', err);
-        setOnline(false);
+      if (lastUrlRef.current) {
+        URL.revokeObjectURL(lastUrlRef.current);
       }
-    }
 
-    if (visible) {
-      startCamera();
-    } else {
-      // stop camera when hidden
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => t.stop());
-        streamRef.current = null;
-      }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
-      setOnline(false);
-    }
+      lastUrlRef.current = url;
+    };
 
     return () => {
-      active = false;
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => t.stop());
-        streamRef.current = null;
-      }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
-      setOnline(false);
+      ws.close();
+      wsRef.current = null;
     };
-  }, [visible]);
+  }, [visible, wsUrl]);
 
   return (
     <Card className="bg-gray-800/50 border-gray-700">
@@ -102,7 +73,7 @@ const LiveGrowCam: React.FC<Props> = ({ wsUrl }) => {
             }`}
           />
           <span className={online ? 'text-green-400' : 'text-red-400'}>
-            {visible ? (online ? 'Live' : 'No camera') : 'Hidden'}
+            {visible ? (online ? 'Live' : 'Offline') : 'Hidden'}
           </span>
         </div>
       </CardHeader>
@@ -110,12 +81,9 @@ const LiveGrowCam: React.FC<Props> = ({ wsUrl }) => {
       <CardContent>
         {visible ? (
           <div className="aspect-video bg-black rounded-lg overflow-hidden">
-            <video
-              ref={videoRef}
+            <img
+              ref={imgRef}
               className="w-full h-full object-cover"
-              playsInline
-              muted
-              autoPlay
             />
           </div>
         ) : (
