@@ -229,6 +229,126 @@ app.post('/api/plant/:id', (req, res) => {
   }
 });
 
+// --- Watering table + endpoints (added for frontend compatibility) ---
+// Create watering table if it doesn't exist
+db.exec(`CREATE TABLE IF NOT EXISTS watering (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  water_level REAL DEFAULT 0,
+  last_watering TEXT,
+  pump_active INTEGER DEFAULT 0,
+  total_watered_litres REAL DEFAULT 0,
+  total_watering_seconds INTEGER DEFAULT 0,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`);
+
+// Ensure at least one watering row exists
+const wateringCount = db.prepare("SELECT COUNT(*) as count FROM watering").get().count;
+if (wateringCount === 0) {
+  const now = new Date().toISOString().replace('T', ' ').substr(0, 19);
+  db.prepare(`INSERT INTO watering (water_level, last_watering, pump_active, total_watered_litres, total_watering_seconds) VALUES (?, ?, ?, ?, ?)`)
+    .run(7.5, now, 0, 0, 0);
+  console.log('Default watering row inserted');
+}
+
+// Helper to fetch the latest watering row
+const getLatestWatering = () => db.prepare("SELECT * FROM watering ORDER BY id DESC LIMIT 1").get();
+
+// GET /api/watering - return latest watering data
+app.get('/api/watering', (req, res) => {
+  try {
+    const row = getLatestWatering();
+    if (!row) {
+      res.status(404).json({ error: 'No watering data found' });
+      return;
+    }
+
+    res.json({
+      waterLevel: row.water_level,
+      lastWatering: row.last_watering,
+      pumpActive: !!row.pump_active,
+      totalWateredLitres: row.total_watered_litres,
+      totalWateringSeconds: row.total_watering_seconds,
+      updatedAt: row.updated_at
+    });
+  } catch (err) {
+    console.error('Error fetching watering data:', err);
+    res.status(500).json({ error: 'Failed to fetch watering data' });
+  }
+});
+
+// POST /api/watering - update latest watering row (partial updates allowed)
+app.post('/api/watering', (req, res) => {
+  try {
+    const { waterLevel, lastWatering, pumpActive, totalWateredLitres, totalWateringSeconds } = req.body;
+
+    // Take the latest row
+    const latest = getLatestWatering();
+    if (!latest) {
+      res.status(404).json({ error: 'No watering row found to update' });
+      return;
+    }
+
+    // Build update parts dynamically
+    const fields = [];
+    const params = [];
+
+    if (typeof waterLevel !== 'undefined') {
+      fields.push('water_level = ?');
+      params.push(waterLevel);
+    }
+
+    if (typeof lastWatering !== 'undefined') {
+      fields.push('last_watering = ?');
+      params.push(lastWatering);
+    }
+
+    if (typeof pumpActive !== 'undefined') {
+      fields.push('pump_active = ?');
+      params.push(pumpActive ? 1 : 0);
+    }
+
+    if (typeof totalWateredLitres !== 'undefined') {
+      fields.push('total_watered_litres = ?');
+      params.push(totalWateredLitres);
+    }
+
+    if (typeof totalWateringSeconds !== 'undefined') {
+      fields.push('total_watering_seconds = ?');
+      params.push(totalWateringSeconds);
+    }
+
+    if (fields.length === 0) {
+      res.status(400).json({ error: 'No valid fields provided to update' });
+      return;
+    }
+
+    // Append updated_at and WHERE id =
+    const sql = `UPDATE watering SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+    params.push(latest.id);
+
+    const result = db.prepare(sql).run(...params);
+
+    if (result.changes === 0) {
+      res.status(500).json({ error: 'Failed to update watering data' });
+      return;
+    }
+
+    // Return the updated row
+    const updated = getLatestWatering();
+    res.json({
+      waterLevel: updated.water_level,
+      lastWatering: updated.last_watering,
+      pumpActive: !!updated.pump_active,
+      totalWateredLitres: updated.total_watered_litres,
+      totalWateringSeconds: updated.total_watering_seconds,
+      updatedAt: updated.updated_at
+    });
+  } catch (err) {
+    console.error('Error updating watering data:', err);
+    res.status(500).json({ error: 'Failed to update watering data' });
+  }
+});
+
 // Start server on all network interfaces
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Plant backend server running on http://0.0.0.0:${PORT}`);
