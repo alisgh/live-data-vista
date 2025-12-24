@@ -20,7 +20,7 @@ interface UpdatePlantData {
   start_date?: string;
 }
 
-const API_BASE = 'http://192.168.0.229:3001/api';
+const API_BASE = 'http://192.168.0.158:3001/api';
 
 export const usePlantData = (plantId?: number) => {
   const [plantData, setPlantData] = useState<PlantData | null>(null);
