@@ -12,7 +12,7 @@ export interface WateringData {
   pumpActive?: boolean;
 }
 
-const API_BASE = 'http://localhost:3001/api'; // use localhost when running server locally
+const API_BASE = 'http://192.168.0.158:3001/api'; // watering API host
 
 export const useWatering = () => {
   const [data, setData] = useState<WateringData | null>(null);
