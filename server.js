@@ -256,10 +256,15 @@ const getLatestWatering = () => db.prepare("SELECT * FROM watering ORDER BY id D
 // GET /api/watering - return latest watering data
 app.get('/api/watering', (req, res) => {
   try {
-    const row = getLatestWatering();
+    let row = getLatestWatering();
+
+    // If no row exists, create a default one instead of returning 404
     if (!row) {
-      res.status(404).json({ error: 'No watering data found' });
-      return;
+      const now = new Date().toISOString().replace('T', ' ').substr(0, 19);
+      db.prepare(`INSERT INTO watering (water_level, last_watering, pump_active, total_watered_litres, total_watering_seconds) VALUES (?, ?, ?, ?, ?)`)
+        .run(0, now, 0, 0, 0);
+      row = getLatestWatering();
+      console.log('Created default watering row to satisfy GET /api/watering');
     }
 
     res.json({
@@ -281,11 +286,14 @@ app.post('/api/watering', (req, res) => {
   try {
     const { waterLevel, lastWatering, pumpActive, totalWateredLitres, totalWateringSeconds } = req.body;
 
-    // Take the latest row
-    const latest = getLatestWatering();
+    // Take the latest row (create if it doesn't exist)
+    let latest = getLatestWatering();
     if (!latest) {
-      res.status(404).json({ error: 'No watering row found to update' });
-      return;
+      const now = new Date().toISOString().replace('T', ' ').substr(0, 19);
+      const insert = db.prepare(`INSERT INTO watering (water_level, last_watering, pump_active, total_watered_litres, total_watering_seconds) VALUES (?, ?, ?, ?, ?)`)
+        .run(0, now, 0, 0, 0);
+      latest = getLatestWatering();
+      console.log('Created default watering row prior to POST /api/watering');
     }
 
     // Build update parts dynamically

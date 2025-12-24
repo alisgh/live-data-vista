@@ -82,7 +82,7 @@ const PLCConfig: React.FC<PLCConfigProps> = ({
                 type="text"
                 value={inputIp}
                 onChange={(e) => setInputIp(e.target.value)}
-                placeholder="192.168.0.148"
+                placeholder="192.168.0.213"
                 className="bg-gray-700 border-gray-600 text-white"
               />
               <Button 

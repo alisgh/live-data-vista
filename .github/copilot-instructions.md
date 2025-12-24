@@ -27,7 +27,7 @@ Purpose: short, actionable guidance so AI coding agents can be immediately produ
 
 ## Operational tips / gotchas ⚠️
 - Dev PLC proxy: update `PLC_IP` in `vite.config.ts` then restart `npm run dev` to proxy CSV endpoints to your PLC. Example:
-  - `vite.config.ts` top: `const PLC_IP = 'http://192.168.100.70'`
+  - `vite.config.ts` top: `const PLC_IP = 'http://192.168.0.213'`
 - Local plant API host: `usePlantData.ts` currently uses `API_BASE = 'http://192.168.0.229:3001/api'`. For local work change to `http://localhost:3001/api` or run the server on that IP.
 - WebSocket security: if your site runs over HTTPS, use `wss://` for camera/PLC sockets; otherwise `useWebSocket` will return `connectionStatus: 'blocked'`.
 - Camera: default live cam URL is set in `src/components/LiveGrowCam.tsx` (default `ws://192.168.0.158:8090`). Update as needed.
