@@ -7,6 +7,7 @@ import LiveGrowCam from '@/components/LiveGrowCam';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import WateringControl from '@/components/WateringControl';
+import NutrientSchedule from '@/components/NutrientSchedule';
 
 
 const Index = () => {
@@ -61,8 +62,9 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="transition-all duration-300 hover:scale-[1.01]">
+          <div className="transition-all duration-300 hover:scale-[1.01] flex flex-col gap-4">
             <WateringControl />
+            <NutrientSchedule />
           </div>
         </div>
       </main>
