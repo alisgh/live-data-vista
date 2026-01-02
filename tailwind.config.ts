@@ -1,6 +1,10 @@
 import type { Config } from "tailwindcss";
 
 export default {
+		safelist: [
+			'bg-background',
+			'text-foreground',
+		],
 	darkMode: ["class"],
 	content: [
 		"./pages/**/*.{ts,tsx}",
