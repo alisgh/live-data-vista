@@ -12,7 +12,7 @@ export type NutrientEntry = {
   updatedAt?: string;
 };
 
-const API_BASE = '/api';
+const API_BASE = 'http://192.168.0.158:3001/api';
 
 export function useNutrientSchedules() {
   const [entries, setEntries] = useState<NutrientEntry[]>([]);
