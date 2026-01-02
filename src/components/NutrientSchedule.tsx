@@ -87,12 +87,12 @@ const NutrientSchedule: React.FC = () => {
     <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
       <h2 className="text-lg font-semibold text-gray-200 mb-3">Nutrient Schedule</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-2">
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="md:w-2/3 w-full min-w-0">
           <NutrientCalendar entries={entries} selected={selectedDate} onSelect={handleSelectDate} className="w-full" />
         </div>
 
-        <div className="md:col-span-1">
+        <div className="md:w-1/3 w-full min-w-[260px] max-w-xs">
           <div className="mb-3 text-sm text-gray-300">
             <div className="flex items-center justify-between">
               <span className="text-gray-400">Selected date</span>
