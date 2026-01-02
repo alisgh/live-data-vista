@@ -357,6 +357,196 @@ app.post('/api/watering', (req, res) => {
   }
 });
 
+// Create nutrient_schedules table if it doesn't exist
+db.exec(`CREATE TABLE IF NOT EXISTS nutrient_schedules (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nutrient_id TEXT,
+  nutrient_name TEXT NOT NULL,
+  amount_ml REAL NOT NULL,
+  application_date TEXT NOT NULL,
+  notes TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`);
+
+// Helper to validate ISO date
+const isValidIsoDate = (d) => {
+  if (!d) return false;
+  const parsed = new Date(d);
+  return !isNaN(parsed.getTime());
+};
+
+// GET /api/nutrients - fetch all nutrient schedules, optional date range with ?start=YYYY-MM-DD&end=YYYY-MM-DD
+app.get('/api/nutrients', (req, res) => {
+  try {
+    const { start, end } = req.query;
+    let rows;
+
+    if (start && end) {
+      // fetch between dates inclusive
+      const stmt = db.prepare("SELECT * FROM nutrient_schedules WHERE date(application_date) BETWEEN date(?) AND date(?) ORDER BY application_date ASC");
+      rows = stmt.all(start, end);
+    } else if (start) {
+      const stmt = db.prepare("SELECT * FROM nutrient_schedules WHERE date(application_date) >= date(?) ORDER BY application_date ASC");
+      rows = stmt.all(start);
+    } else {
+      const stmt = db.prepare("SELECT * FROM nutrient_schedules ORDER BY application_date ASC");
+      rows = stmt.all();
+    }
+
+    res.json(rows.map(r => ({
+      id: r.id,
+      nutrientId: r.nutrient_id,
+      nutrientName: r.nutrient_name,
+      amountMl: r.amount_ml,
+      applicationDate: r.application_date,
+      notes: r.notes,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at
+    })));
+  } catch (err) {
+    console.error('Error fetching nutrient schedules:', err);
+    res.status(500).json({ error: 'Failed to fetch nutrient schedules' });
+  }
+});
+
+// POST /api/nutrients - create a new nutrient schedule
+app.post('/api/nutrients', (req, res) => {
+  try {
+    const { nutrientId, nutrientName, amountMl, applicationDate, notes } = req.body;
+
+    if (!nutrientName || String(nutrientName).trim() === '') {
+      res.status(400).json({ error: 'nutrientName is required' });
+      return;
+    }
+
+    if (typeof amountMl === 'undefined' || isNaN(Number(amountMl)) || Number(amountMl) <= 0) {
+      res.status(400).json({ error: 'amountMl must be a positive number' });
+      return;
+    }
+
+    if (!applicationDate || !isValidIsoDate(applicationDate)) {
+      res.status(400).json({ error: 'applicationDate is required and must be a valid date' });
+      return;
+    }
+
+    const stmt = db.prepare(`INSERT INTO nutrient_schedules (nutrient_id, nutrient_name, amount_ml, application_date, notes) VALUES (?, ?, ?, ?, ?)`);
+    const result = stmt.run(nutrientId || null, String(nutrientName).trim(), Number(amountMl), applicationDate, notes || null);
+
+    const created = db.prepare('SELECT * FROM nutrient_schedules WHERE id = ?').get(result.lastInsertRowid);
+
+    res.status(201).json({
+      id: created.id,
+      nutrientId: created.nutrient_id,
+      nutrientName: created.nutrient_name,
+      amountMl: created.amount_ml,
+      applicationDate: created.application_date,
+      notes: created.notes,
+      createdAt: created.created_at,
+      updatedAt: created.updated_at
+    });
+  } catch (err) {
+    console.error('Error creating nutrient schedule:', err);
+    res.status(500).json({ error: 'Failed to create nutrient schedule' });
+  }
+});
+
+// PUT /api/nutrients/:id - update a nutrient schedule
+app.put('/api/nutrients/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nutrientId, nutrientName, amountMl, applicationDate, notes } = req.body;
+
+    const existing = db.prepare('SELECT * FROM nutrient_schedules WHERE id = ?').get(id);
+    if (!existing) {
+      res.status(404).json({ error: `Nutrient schedule with id ${id} not found` });
+      return;
+    }
+
+    if (nutrientName && String(nutrientName).trim() === '') {
+      res.status(400).json({ error: 'nutrientName must not be empty' });
+      return;
+    }
+
+    if (typeof amountMl !== 'undefined' && (isNaN(Number(amountMl)) || Number(amountMl) <= 0)) {
+      res.status(400).json({ error: 'amountMl must be a positive number' });
+      return;
+    }
+
+    if (applicationDate && !isValidIsoDate(applicationDate)) {
+      res.status(400).json({ error: 'applicationDate must be a valid date' });
+      return;
+    }
+
+    // Build dynamic update
+    const fields = [];
+    const params = [];
+
+    if (typeof nutrientId !== 'undefined') {
+      fields.push('nutrient_id = ?'); params.push(nutrientId || null);
+    }
+    if (typeof nutrientName !== 'undefined') { fields.push('nutrient_name = ?'); params.push(String(nutrientName).trim()); }
+    if (typeof amountMl !== 'undefined') { fields.push('amount_ml = ?'); params.push(Number(amountMl)); }
+    if (typeof applicationDate !== 'undefined') { fields.push('application_date = ?'); params.push(applicationDate); }
+    if (typeof notes !== 'undefined') { fields.push('notes = ?'); params.push(notes || null); }
+
+    if (fields.length === 0) {
+      res.status(400).json({ error: 'No updatable fields provided' });
+      return;
+    }
+
+    const sql = `UPDATE nutrient_schedules SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+    params.push(id);
+
+    const result = db.prepare(sql).run(...params);
+
+    if (result.changes === 0) {
+      res.status(500).json({ error: 'Failed to update nutrient schedule' });
+      return;
+    }
+
+    const updated = db.prepare('SELECT * FROM nutrient_schedules WHERE id = ?').get(id);
+    res.json({
+      id: updated.id,
+      nutrientId: updated.nutrient_id,
+      nutrientName: updated.nutrient_name,
+      amountMl: updated.amount_ml,
+      applicationDate: updated.application_date,
+      notes: updated.notes,
+      createdAt: updated.created_at,
+      updatedAt: updated.updated_at
+    });
+  } catch (err) {
+    console.error('Error updating nutrient schedule:', err);
+    res.status(500).json({ error: 'Failed to update nutrient schedule' });
+  }
+});
+
+// DELETE /api/nutrients/:id - delete a nutrient schedule
+app.delete('/api/nutrients/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = db.prepare('SELECT * FROM nutrient_schedules WHERE id = ?').get(id);
+    if (!existing) {
+      res.status(404).json({ error: `Nutrient schedule with id ${id} not found` });
+      return;
+    }
+
+    const stmt = db.prepare('DELETE FROM nutrient_schedules WHERE id = ?');
+    const result = stmt.run(id);
+
+    if (result.changes === 0) {
+      res.status(500).json({ error: 'Failed to delete nutrient schedule' });
+      return;
+    }
+
+    res.json({ success: true, message: `Deleted nutrient schedule ${id}` });
+  } catch (err) {
+    console.error('Error deleting nutrient schedule:', err);
+    res.status(500).json({ error: 'Failed to delete nutrient schedule' });
+  }
+});
+
 // Start server on all network interfaces
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Plant backend server running on http://0.0.0.0:${PORT}`);

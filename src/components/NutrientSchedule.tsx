@@ -1,104 +1,153 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import NutrientCalendar from './NutrientCalendar';
+import { useNutrientSchedules, NutrientEntry } from '@/hooks/useNutrientSchedules';
 
-// Simple nutrient type so adding new nutrients is easy later
-type Nutrient = {
-  id: string;
-  name: string;
-  amountMl: number;
-};
+const DEFAULT_NUTRIENT_NAMES = ['Bio-Grow', 'Bio-Bloom', 'Top-Max', 'Cal-Mag'];
 
-// Default weekly nutrients — extend this array to add more nutrients (e.g. Bio-Bloom)
-const DEFAULT_NUTRIENTS: Nutrient[] = [
-  { id: 'bio-grow', name: 'Bio-Grow', amountMl: 2 },
-  { id: 'cal-mag', name: 'Cal-Mag', amountMl: 1 },
-];
-
-const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-
-const startOfDay = (d: Date) => {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-};
-
-const addDays = (d: Date, days: number) => {
-  const x = new Date(d);
-  x.setDate(x.getDate() + days);
-  return x;
-};
-
-// Compute the next scheduled weekly dose after "today" based on a start date
-export function computeNextDoseDate(startDate: Date): Date {
-  const s = startOfDay(startDate);
-  const today = startOfDay(new Date());
-
-  if (s > today) return s; // schedule starts in the future
-
-  const weeksSince = Math.floor((today.getTime() - s.getTime()) / msPerWeek);
-  return addDays(s, (weeksSince + 1) * 7);
-}
-
-const formatDate = (d: Date) => d.toLocaleDateString();
+const formatDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString() : '');
 
 const NutrientSchedule: React.FC = () => {
-  // Start the schedule from today
-  const [startDate] = useState<Date>(() => startOfDay(new Date()));
+  const { entries, isLoading, error, createEntry, updateEntry, deleteEntry } = useNutrientSchedules();
 
-  // Keep nutrients in state to allow future UI edits / extensions
-  const [nutrients] = useState<Nutrient[]>(DEFAULT_NUTRIENTS);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
-  // Next scheduled dose updates automatically whenever startDate or the current day changes
-  const [nextDose, setNextDose] = useState<Date>(() => computeNextDoseDate(startDate));
+  // Form state for create/edit
+  const [form, setForm] = useState<{
+    id?: number | null;
+    nutrientName: string;
+    amountMl: string;
+    applicationDate: string;
+    notes: string;
+  }>({ nutrientName: DEFAULT_NUTRIENT_NAMES[0], amountMl: '2', applicationDate: new Date().toISOString().split('T')[0], notes: '' });
 
-  // Update nextDose on mount and once a day (simple interval)
-  useEffect(() => {
-    setNextDose(computeNextDoseDate(startDate));
+  // Filter entries for selected date
+  const selectedKey = selectedDate ? selectedDate.toISOString().split('T')[0] : null;
+  const entriesByDate = useMemo(() => {
+    if (!selectedKey) return [] as NutrientEntry[];
+    return entries.filter((e) => e.applicationDate.split('T')[0] === selectedKey);
+  }, [entries, selectedKey]);
 
-    // Recompute at midnight to keep "nextDose" accurate if the user leaves the page open
-    const interval = setInterval(() => {
-      setNextDose(computeNextDoseDate(startDate));
-    }, 60 * 60 * 1000); // hourly check is lightweight and enough for this use-case
+  const handleSelectDate = (d: Date | undefined) => {
+    setSelectedDate(d);
+    setForm((f) => ({ ...f, applicationDate: d ? d.toISOString().split('T')[0] : f.applicationDate }));
+  };
 
-    return () => clearInterval(interval);
-  }, [startDate]);
+  const resetForm = () => {
+    setForm({ nutrientName: DEFAULT_NUTRIENT_NAMES[0], amountMl: '2', applicationDate: new Date().toISOString().split('T')[0], notes: '' });
+  };
 
-  const totalPerWeek = useMemo(() => {
-    return nutrients.reduce((acc, n) => acc + n.amountMl, 0);
-  }, [nutrients]);
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const payload: Omit<NutrientEntry, 'id' | 'createdAt' | 'updatedAt'> = {
+        nutrientName: form.nutrientName,
+        amountMl: Number(form.amountMl),
+        applicationDate: form.applicationDate,
+        notes: form.notes || null,
+      };
+
+      if (form.id) {
+        await updateEntry(form.id, payload);
+      } else {
+        await createEntry(payload);
+      }
+
+      resetForm();
+      // Refresh selected date view naturally by virtue of entries state updating in the hook
+    } catch (err) {
+      // error is handled by hook; optionally show toast
+      console.error(err);
+    }
+  };
+
+  const onEdit = (entry: NutrientEntry) => {
+    setForm({ id: entry.id, nutrientName: entry.nutrientName, amountMl: String(entry.amountMl), applicationDate: entry.applicationDate.split('T')[0], notes: entry.notes || '' });
+  };
+
+  const onDelete = async (id?: number) => {
+    if (!id) return;
+    if (!confirm('Delete this nutrient schedule?')) return;
+    try {
+      await deleteEntry(id);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
       <h2 className="text-lg font-semibold text-gray-200 mb-3">Nutrient Schedule</h2>
 
-      <div className="text-sm text-gray-300 mb-3">
-        <div className="flex items-center justify-between">
-          <span className="text-gray-400">Start date</span>
-          <span className="font-medium">{formatDate(startDate)}</span>
-        </div>
-        <div className="flex items-center justify-between mt-2">
-          <span className="text-gray-400">Next scheduled dose</span>
-          <span className="font-medium">{formatDate(nextDose)}</span>
-        </div>
-      </div>
-
-      <div className="mt-2">
-        <div className="text-gray-400 text-sm mb-2">Nutrients per week</div>
-
-        <ul className="space-y-2">
-          {nutrients.map((n) => (
-            <li key={n.id} className="flex items-center justify-between text-sm">
-              <span className="text-gray-200">{n.name}</span>
-              <span className="text-gray-300">{n.amountMl} ml / week</span>
-            </li>
-          ))}
-        </ul>
-
-        <div className="mt-4 border-t border-gray-700 pt-3 flex items-center justify-between text-sm text-gray-300">
-          <span className="text-gray-400">Total</span>
-          <span className="font-medium">{totalPerWeek} ml / week</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <NutrientCalendar entries={entries} selected={selectedDate} onSelect={handleSelectDate} />
         </div>
 
-        <p className="mt-3 text-xs text-gray-500">⚡ Extensible: add new nutrients to the DEFAULT_NUTRIENTS array.</p>
+        <div>
+          <div className="mb-3 text-sm text-gray-300">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-400">Selected date</span>
+              <span className="font-medium">{selectedDate ? formatDate(selectedDate.toISOString()) : 'None'}</span>
+            </div>
+            <div className="text-xs text-gray-500 mt-2">Click a day to view or schedule nutrients for that date.</div>
+          </div>
+
+          <form onSubmit={onSubmit} className="space-y-2">
+            <div>
+              <label className="text-xs text-gray-400">Nutrient name</label>
+              <input className="w-full mt-1 p-2 bg-gray-900 border border-gray-700 rounded" value={form.nutrientName} onChange={(e) => setForm({ ...form, nutrientName: e.target.value })} />
+              <div className="text-xs text-gray-500 mt-1">Try: {DEFAULT_NUTRIENT_NAMES.join(', ')}</div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-gray-400">Amount (ml)</label>
+                <input type="number" min="0" step="0.1" className="w-full mt-1 p-2 bg-gray-900 border border-gray-700 rounded" value={form.amountMl} onChange={(e) => setForm({ ...form, amountMl: e.target.value })} />
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-400">Date</label>
+                <input type="date" className="w-full mt-1 p-2 bg-gray-900 border border-gray-700 rounded" value={form.applicationDate} onChange={(e) => setForm({ ...form, applicationDate: e.target.value })} />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-gray-400">Notes (optional)</label>
+              <textarea className="w-full mt-1 p-2 bg-gray-900 border border-gray-700 rounded" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            </div>
+
+            <div className="flex gap-2">
+              <button type="submit" className="px-3 py-2 bg-green-500 text-black rounded">{form.id ? 'Save' : 'Add'}</button>
+              <button type="button" className="px-3 py-2 bg-gray-700 rounded" onClick={resetForm}>Reset</button>
+            </div>
+
+            {error && <div className="text-sm text-red-400">{error}</div>}
+          </form>
+
+          <div className="mt-4">
+            <h3 className="text-sm text-gray-200 mb-2">Entries {selectedDate ? `on ${selectedDate.toLocaleDateString()}` : ''}</h3>
+
+            {isLoading && <div className="text-sm text-gray-400">Loading...</div>}
+
+            {!isLoading && entriesByDate.length === 0 && <div className="text-sm text-gray-500">No entries for this date.</div>}
+
+            <ul className="space-y-2">
+              {entriesByDate.map((e) => (
+                <li key={e.id} className="p-2 bg-gray-900 border border-gray-700 rounded flex items-start justify-between">
+                  <div>
+                    <div className="text-sm text-gray-200 font-medium">{e.nutrientName} — {e.amountMl} ml</div>
+                    <div className="text-xs text-gray-400">{formatDate(e.applicationDate)} {e.notes ? `· ${e.notes}` : ''}</div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <button className="px-2 py-1 text-xs bg-gray-700 rounded" onClick={() => onEdit(e)}>Edit</button>
+                    <button className="px-2 py-1 text-xs bg-red-600 rounded" onClick={() => onDelete(e.id)}>Delete</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   );
