@@ -84,7 +84,6 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
-}
 
 @layer base {
   * {
@@ -112,7 +111,7 @@
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-500;
   }
-}
+/* ...existing code... */
 
 /* Custom animations for grow box dashboard */
 @keyframes pulse-green {
