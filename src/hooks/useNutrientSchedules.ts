@@ -7,6 +7,7 @@ export type NutrientEntry = {
   amountMl: number;
   applicationDate: string; // ISO date string
   notes?: string | null;
+  stage: 'veg' | 'flower';
   createdAt?: string;
   updatedAt?: string;
 };

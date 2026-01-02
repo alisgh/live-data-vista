@@ -34,12 +34,10 @@ const groupByDate = (entries: NutrientEntry[]) => {
   return map;
 };
 
-// small mapping for dot colors
-const COLOR_MAP: Record<string, string> = {
-  'Bio-Grow': 'bg-green-400',
-  'Bio-Bloom': 'bg-pink-400',
-  'Top-Max': 'bg-indigo-400',
-  'Cal-Mag': 'bg-yellow-400',
+// Map stage to color
+const STAGE_COLOR: Record<'veg' | 'flower', string> = {
+  veg: 'bg-green-400',
+  flower: 'bg-pink-400',
 };
 
 const NutrientCalendar: React.FC<Props> = ({ entries, selected, onSelect, className }) => {
@@ -63,13 +61,15 @@ const NutrientCalendar: React.FC<Props> = ({ entries, selected, onSelect, classN
             const date = p.date;
             const key = dateToKey(date);
             const dayEntries = grouped[key] || [];
+            // Find if veg/flower present
+            const hasVeg = dayEntries.some(e => e.stage === 'veg');
+            const hasFlower = dayEntries.some(e => e.stage === 'flower');
             return (
               <div className="flex flex-col items-center">
                 <div className="text-sm font-medium">{date.getDate()}</div>
                 <div className="mt-2 flex gap-1">
-                  {dayEntries.slice(0, 5).map((entry, i) => (
-                    <span key={i} className={`w-2 h-2 rounded-full ${COLOR_MAP[entry.nutrientName] || 'bg-green-400'}`} />
-                  ))}
+                  {hasVeg && <span className="w-2 h-2 rounded-full bg-green-400" title="Veg" />}
+                  {hasFlower && <span className="w-2 h-2 rounded-full bg-pink-400" title="Flower" />}
                 </div>
               </div>
             );
