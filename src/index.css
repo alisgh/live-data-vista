@@ -127,3 +127,29 @@
 .pulse-green {
   animation: pulse-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+/* DayPicker large calendar styles for grow dashboard */
+.rdp-large .rdp-month {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(56px, 1fr));
+  gap: 0.25rem;
+}
+.rdp-large .rdp-day {
+  width: 56px;
+  height: 56px;
+  padding: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+}
+.rdp-large .rdp-day .nutrient-dots {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 4px;
+}
+.rdp-large .rdp-day .nutrient-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+}

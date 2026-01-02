@@ -4,7 +4,9 @@ import { useNutrientSchedules, NutrientEntry } from '@/hooks/useNutrientSchedule
 
 const DEFAULT_NUTRIENT_NAMES = ['Bio-Grow', 'Bio-Bloom', 'Top-Max', 'Cal-Mag'];
 
-const formatDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString() : '');
+// Parse ISO or date-only strings safely so local dates don't shift due to timezone
+const safeDateFromIso = (iso: string) => new Date(iso.length === 10 ? `${iso}T00:00:00` : iso);
+const formatDate = (iso?: string) => (iso ? safeDateFromIso(iso).toLocaleDateString() : '');
 
 const NutrientSchedule: React.FC = () => {
   const { entries, isLoading, error, createEntry, updateEntry, deleteEntry } = useNutrientSchedules();
@@ -78,16 +80,16 @@ const NutrientSchedule: React.FC = () => {
     <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
       <h2 className="text-lg font-semibold text-gray-200 mb-3">Nutrient Schedule</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <NutrientCalendar entries={entries} selected={selectedDate} onSelect={handleSelectDate} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="md:col-span-2">
+          <NutrientCalendar entries={entries} selected={selectedDate} onSelect={handleSelectDate} className="w-full" />
         </div>
 
-        <div>
+        <div className="md:col-span-1">
           <div className="mb-3 text-sm text-gray-300">
             <div className="flex items-center justify-between">
               <span className="text-gray-400">Selected date</span>
-              <span className="font-medium">{selectedDate ? formatDate(selectedDate.toISOString()) : 'None'}</span>
+              <span className="font-medium">{selectedDate ? selectedDate.toLocaleDateString() : 'None'}</span>
             </div>
             <div className="text-xs text-gray-500 mt-2">Click a day to view or schedule nutrients for that date.</div>
           </div>

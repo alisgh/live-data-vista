@@ -547,6 +547,37 @@ app.delete('/api/nutrients/:id', (req, res) => {
   }
 });
 
+// If an API route is not matched above, return JSON 404
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'API route not found' });
+});
+
+// If a static build exists, serve it after all API routes are defined
+const fs = require('fs');
+const clientDist = path.join(__dirname, 'dist');
+if (fs.existsSync(clientDist)) {
+  // Serve client static files (placed here so /api/* endpoints take precedence)
+  app.use(express.static(clientDist));
+
+  // For any non-API route, serve index.html (single page app)
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      // If an API route wasn't matched earlier, return JSON 404
+      res.status(404).json({ error: 'API route not found' });
+      return;
+    }
+
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+}
+
+// JSON error handler - ensures errors return JSON rather than HTML
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: err && err.message ? err.message : 'Internal Server Error' });
+});
+
 // Start server on all network interfaces
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Plant backend server running on http://0.0.0.0:${PORT}`);

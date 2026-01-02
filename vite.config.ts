@@ -43,6 +43,17 @@ export default defineConfig(({ mode }) => ({
             console.log('Received Response from PLC:', proxyRes.statusCode, req.url);
           });
         }
+      },
+      // Proxy API requests to the local backend during development so '/api/*' returns JSON from server
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+        configure: (proxy) => {
+          proxy.on('error', (err, req) => {
+            console.log('API proxy error:', err.message, req.url);
+          });
+        }
       }
     }
   },
