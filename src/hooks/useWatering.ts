@@ -19,14 +19,19 @@ export const useWatering = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const mapApiToData = (apiJson: any): WateringData => {
+  const mapApiToData = (apiJson: Record<string, unknown>): WateringData => {
     return {
-      totalWateredLitres: apiJson.totalWateredLitres ?? 0,
-      waterTankLevelLitres: apiJson.waterTankLevelLitres ?? apiJson.waterLevel ?? 0,
-      totalWateringSeconds: apiJson.totalWateringSeconds ?? 0,
-      waterLevel: apiJson.waterLevel,
-      lastWatering: apiJson.lastWatering,
-      pumpActive: apiJson.pumpActive,
+      totalWateredLitres: typeof apiJson.totalWateredLitres === 'number' ? apiJson.totalWateredLitres : 0,
+      waterTankLevelLitres:
+        typeof apiJson.waterTankLevelLitres === 'number'
+          ? apiJson.waterTankLevelLitres
+          : typeof apiJson.waterLevel === 'number'
+            ? apiJson.waterLevel
+            : 0,
+      totalWateringSeconds: typeof apiJson.totalWateringSeconds === 'number' ? apiJson.totalWateringSeconds : 0,
+      waterLevel: typeof apiJson.waterLevel === 'number' ? apiJson.waterLevel : 0,
+      lastWatering: typeof apiJson.lastWatering === 'string' ? apiJson.lastWatering : '',
+      pumpActive: typeof apiJson.pumpActive === 'boolean' ? apiJson.pumpActive : false,
     };
   };
 
@@ -40,8 +45,8 @@ export const useWatering = () => {
       const mapped = mapApiToData(json);
       setData(mapped);
       return mapped;
-    } catch (err: any) {
-      setError(err?.message ?? 'Unknown error');
+    } catch (err) {
+      setError((err as Error)?.message ?? 'Unknown error');
       console.error('Failed to fetch watering data:', err);
       return null;
     } finally {
@@ -61,8 +66,8 @@ export const useWatering = () => {
       const mapped = mapApiToData(json);
       setData(mapped);
       return mapped;
-    } catch (err: any) {
-      setError(err?.message ?? 'Unknown error');
+    } catch (err) {
+      setError((err as Error)?.message ?? 'Unknown error');
       console.error('Failed to update watering data:', err);
       return null;
     }

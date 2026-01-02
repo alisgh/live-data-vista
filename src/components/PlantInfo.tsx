@@ -31,7 +31,7 @@ const PlantInfo: React.FC = () => {
     if (!tempName.trim() || !plantData) return;
     
     setIsSaving(true);
-    const updates: any = {};
+    const updates: Partial<typeof plantData> = {};
     
     if (tempName.trim() !== plantData.name) {
       updates.name = tempName.trim();

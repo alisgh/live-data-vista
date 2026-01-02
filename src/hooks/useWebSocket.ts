@@ -10,7 +10,7 @@ interface WebSocketData {
 interface UseWebSocketReturn {
   data: WebSocketData | null;
   connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error' | 'blocked';
-  sendMessage: (message: any) => void;
+  sendMessage: (message: unknown) => void;
   reconnect: () => void;
   writeVariable: (name: string, value: number) => void;
 }
@@ -104,7 +104,7 @@ export const useWebSocket = (url: string): UseWebSocketReturn => {
     }
   }, [url]);
 
-  const sendMessage = useCallback((message: any) => {
+  const sendMessage = useCallback((message: unknown) => {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify(message));
       console.log('Sent WebSocket message:', message);

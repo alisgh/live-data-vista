@@ -108,7 +108,7 @@ const PLCConfigPage = () => {
     if (data) {
       const key = variableName.toLowerCase();
       if (key in data) {
-        return String((data as any)[key]);
+        return String((data as Record<string, unknown>)[key]);
       }
     }
     return defaultValue;

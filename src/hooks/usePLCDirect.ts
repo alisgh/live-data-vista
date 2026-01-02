@@ -95,8 +95,8 @@ export const usePLCDirect = (): UsePLCDirectReturn => {
         setConnectionStatus('error');
         return null;
       }
-    } catch (error: any) {
-      if (error.name === 'AbortError') return null;
+    } catch (error) {
+      if ((error as Error)?.name === 'AbortError') return null;
       setConnectionStatus('error');
       return null;
     } finally {
