@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import PLCConfigPage from "./pages/PLCConfig";
 import NotFound from "./pages/NotFound";
+import NutrientSchedule from "./components/NutrientSchedule";
 
 const queryClient = new QueryClient();
 
