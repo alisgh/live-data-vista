@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
+// Update PLCData interface to match new variables
 export interface PLCData {
-  halogenLight: number;  // b_Halogene
-  b_water: number;       // b_water
-  haloTemp: number;      // r_Halo_Temp
-  ambientTemp: number;   // r_Temperatur
-  r_light: number;       // r_light (NEW)
+  b_water: number;    // BOOL
+  b_water2: number;   // BOOL
+  r_Temp: number;     // REAL
+  r_light: number;    // REAL
 }
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
@@ -30,21 +30,20 @@ export const usePLCDirect = (): UsePLCDirectReturn => {
   const getUrl = '/getvar.csv';
   const setUrl = '/setvar.csv';
 
+  // Update mapping to match new variable names
   const plcToInternalMap: Record<string, keyof PLCData> = {
-    'b_Halogene': 'halogenLight',
     'b_water': 'b_water',
-    'r_Halo_Temp': 'haloTemp',
-    'r_Temperatur': 'ambientTemp',
-    'r_light': 'r_light', // NEW
+    'b_water2': 'b_water2',
+    'r_Temp': 'r_Temp',
+    'r_light': 'r_light',
   };
 
-  // Updated mapping to use numeric IDs (as expected by your PLC)
+  // Update mapping to match new variable IDs
   const internalToPlcMap: Record<keyof PLCData, string> = {
-    halogenLight: '693',     // ID for b_Halogene
-    b_water: '20',           // UPDATED ID for b_water
-    haloTemp: '697',         // ID for r_Halo_Temp
-    ambientTemp: '698',      // ID for r_Temperatur
-    r_light: '24',           // NEW ID for r_light
+    b_water: '20',
+    b_water2: '21',
+    r_Temp: '23',
+    r_light: '24',
   };
 
   const parseCsvLine = (line: string): string[] => {
@@ -86,11 +85,12 @@ export const usePLCDirect = (): UsePLCDirectReturn => {
         plcData[key] = type === 'REAL' ? parseFloat(valueStr) : parseInt(valueStr, 10);
       }
 
+      // Update required fields check
       if (
-        plcData.halogenLight !== undefined &&
         plcData.b_water !== undefined &&
-        plcData.haloTemp !== undefined &&
-        plcData.ambientTemp !== undefined
+        plcData.b_water2 !== undefined &&
+        plcData.r_Temp !== undefined &&
+        plcData.r_light !== undefined
       ) {
         setConnectionStatus('connected');
         return plcData as PLCData;
