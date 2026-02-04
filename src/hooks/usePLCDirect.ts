@@ -5,6 +5,7 @@ export interface PLCData {
   b_water: number;       // b_water
   haloTemp: number;      // r_Halo_Temp
   ambientTemp: number;   // r_Temperatur
+  r_light: number;       // r_light (NEW)
 }
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
@@ -34,14 +35,16 @@ export const usePLCDirect = (): UsePLCDirectReturn => {
     'b_water': 'b_water',
     'r_Halo_Temp': 'haloTemp',
     'r_Temperatur': 'ambientTemp',
+    'r_light': 'r_light', // NEW
   };
 
   // Updated mapping to use numeric IDs (as expected by your PLC)
   const internalToPlcMap: Record<keyof PLCData, string> = {
     halogenLight: '693',     // ID for b_Halogene
-    b_water: '694',          // ID for b_water
+    b_water: '20',           // UPDATED ID for b_water
     haloTemp: '697',         // ID for r_Halo_Temp
     ambientTemp: '698',      // ID for r_Temperatur
+    r_light: '24',           // NEW ID for r_light
   };
 
   const parseCsvLine = (line: string): string[] => {

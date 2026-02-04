@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-const PLC_IP = 'http://192.168.0.213'; // 👈 Set your PLC IP once here (controller IP changed to 192.168.0.213)
+const PLC_IP = 'http://192.168.0.212'; // 👈 Set your PLC IP once here (controller IP changed to 192.168.0.213)
 
 export default defineConfig(({ mode }) => ({
   server: {

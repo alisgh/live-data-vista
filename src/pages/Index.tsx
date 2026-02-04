@@ -14,6 +14,7 @@ const Index = () => {
   const [controllerIp, setControllerIp] = useState('192.168.100.70');
   const { data, connectionStatus, writeVariable, refreshData, isLoading, triggerPulse } = usePLCDirect();
   const { toast } = useToast();
+  const [lightValue, setLightValue] = useState(0);
 
   const handleWater = async () => {
     try {
@@ -30,9 +31,24 @@ const Index = () => {
     }
   };
 
+  const handleLightChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Number(e.target.value);
+    setLightValue(value);
+    try {
+      await writeVariable('r_light', value);
+      toast({
+        title: 'Light Intensity Updated',
+        description: `Set to ${value}%`,
+        duration: 2000,
+      });
+    } catch (err) {
+      toast({ title: 'Light Error', description: String(err), variant: 'destructive', duration: 5000 });
+    }
+  };
+
   const reconnect = () => {
     refreshData();
-  }; 
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -63,6 +79,23 @@ const Index = () => {
           </div>
 
           <div className="transition-all duration-300 hover:scale-[1.01] flex flex-col gap-4">
+            {/* Light Control */}
+            <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
+              <h2 className="text-lg font-semibold text-gray-200 mb-2">Light Control</h2>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={data?.r_light ?? lightValue}
+                onChange={handleLightChange}
+                className="w-full"
+              />
+              <div className="flex justify-between text-sm mt-1">
+                <span>0%</span>
+                <span>{data?.r_light ?? lightValue}%</span>
+                <span>100%</span>
+              </div>
+            </div>
             <WateringControl />
             <NutrientSchedule />
           </div>
